@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/aws-amplify/amplify-backend/main/packages/client-config/src/client-config-schema/schema_v1.json",
+  "version": "1",
+  "auth": {
+    "user_pool_id": "PLACEHOLDER_DEPLOY_SANDBOX_FIRST",
+    "user_pool_client_id": "PLACEHOLDER_DEPLOY_SANDBOX_FIRST",
+    "aws_region": "us-east-1"
+  },
+  "data": {
+    "aws_region": "us-east-1",
+    "url": "https://placeholder.appsync-api.us-east-1.amazonaws.com/graphql",
+    "default_authorization_type": "AMAZON_COGNITO_USER_POOLS",
+    "authorization_types": []
+  }
+}

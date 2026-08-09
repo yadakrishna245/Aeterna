@@ -1,0 +1,101 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-navy-950 text-slate-200 font-sans antialiased;
+    min-height: 100vh;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-navy-950;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-navy-700 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-500;
+  }
+}
+
+@layer components {
+  /* Amplify Authenticator theme overrides */
+  [data-amplify-authenticator] {
+    --amplify-colors-background-primary: #0B1120;
+    --amplify-colors-background-secondary: #1E293B;
+    --amplify-colors-brand-primary-10: #D4AF37;
+    --amplify-colors-brand-primary-20: #D4AF37;
+    --amplify-colors-brand-primary-40: #D4AF37;
+    --amplify-colors-brand-primary-60: #D4AF37;
+    --amplify-colors-brand-primary-80: #B8960C;
+    --amplify-colors-brand-primary-90: #A68B2B;
+    --amplify-colors-brand-primary-100: #D4AF37;
+    --amplify-colors-font-primary: #e2e8f0;
+    --amplify-colors-font-secondary: #94a3b8;
+    --amplify-colors-border-primary: #334155;
+    --amplify-colors-border-secondary: #1E293B;
+    --amplify-radii-small: 8px;
+    --amplify-radii-medium: 12px;
+    --amplify-space-small: 12px;
+    --amplify-space-medium: 16px;
+  }
+
+  [data-amplify-authenticator] button[type="submit"] {
+    @apply bg-gold hover:bg-gold-dark text-navy-950 font-semibold rounded-lg transition-all duration-200;
+  }
+
+  [data-amplify-authenticator] input {
+    @apply bg-navy-900 border-navy-700 text-slate-200 rounded-lg;
+  }
+
+  .card {
+    @apply bg-navy-800 border border-slate-700/50 rounded-xl p-6 shadow-lg;
+  }
+
+  .btn-gold {
+    @apply bg-gold hover:bg-gold-light text-navy-950 font-semibold px-6 py-3 rounded-lg 
+           transition-all duration-200 hover:shadow-glow active:scale-[0.98];
+  }
+
+  .btn-outline {
+    @apply border border-gold/30 text-gold hover:bg-gold/10 font-medium px-4 py-2 rounded-lg 
+           transition-all duration-200;
+  }
+
+  .btn-danger {
+    @apply bg-red-600/20 border border-red-500/30 text-red-400 hover:bg-red-600/30 
+           font-medium px-4 py-2 rounded-lg transition-all duration-200;
+  }
+
+  .input-field {
+    @apply w-full bg-navy-900 border border-navy-700 text-slate-200 rounded-lg px-4 py-3 
+           placeholder-slate-500 focus:outline-none focus:border-gold/50 focus:ring-1 
+           focus:ring-gold/30 transition-all duration-200;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-slate-400 mb-1.5;
+  }
+}
+
+@layer utilities {
+  .text-gradient-gold {
+    @apply bg-gradient-to-r from-gold to-gold-light bg-clip-text text-transparent;
+  }
+}
