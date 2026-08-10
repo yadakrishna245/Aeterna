@@ -24,10 +24,16 @@ import {
   Activity,
   Download,
   Timer,
+  Key,
+  MessageCircle,
+  Sparkles,
 } from "lucide-react";
 import { AddAssetModal } from "./AddAssetModal";
 import { BeneficiaryManager } from "./BeneficiaryManager";
 import { ActivityLog, logActivity } from "./ActivityLog";
+import { GriefAssistant } from "./GriefAssistant";
+import { TimeCapsule } from "./TimeCapsule";
+import { TwoFAVault } from "./TwoFAVault";
 
 const client = generateClient<Schema>();
 
@@ -55,7 +61,7 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
   const [decryptedMeta, setDecryptedMeta] = useState<Record<string, DecryptedVaultMeta>>({});
   const [decryptingId, setDecryptingId] = useState<string | null>(null);
   const [checkingIn, setCheckingIn] = useState(false);
-  const [activeTab, setActiveTab] = useState<"vaults" | "activity">("vaults");
+  const [activeTab, setActiveTab] = useState<"vaults" | "activity" | "2fa" | "capsules" | "guide">("vaults");
   const [exportingBackup, setExportingBackup] = useState(false);
 
   const toast = useToast();
@@ -461,6 +467,39 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
             <Activity className="w-4 h-4" />
             Activity
           </button>
+          <button
+            onClick={() => setActiveTab("2fa")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              activeTab === "2fa"
+                ? "bg-navy-700 text-slate-100 shadow-sm"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <Key className="w-4 h-4" />
+            2FA Vault
+          </button>
+          <button
+            onClick={() => setActiveTab("capsules")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              activeTab === "capsules"
+                ? "bg-navy-700 text-slate-100 shadow-sm"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <MessageCircle className="w-4 h-4" />
+            Time Capsules
+          </button>
+          <button
+            onClick={() => setActiveTab("guide")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              activeTab === "guide"
+                ? "bg-navy-700 text-slate-100 shadow-sm"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <Sparkles className="w-4 h-4" />
+            AI Guide
+          </button>
         </div>
 
         {/* Tab Content */}
@@ -471,6 +510,16 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
               <h2 className="text-lg font-semibold text-slate-100">Activity History</h2>
             </div>
             <ActivityLog />
+          </div>
+        ) : activeTab === "2fa" ? (
+          <div className="card">
+            <TwoFAVault masterPassword={masterPassword} />
+          </div>
+        ) : activeTab === "capsules" ? (
+          <TimeCapsule masterPassword={masterPassword} />
+        ) : activeTab === "guide" ? (
+          <div className="card">
+            <GriefAssistant masterPassword={masterPassword} mode="owner" />
           </div>
         ) : (
         <>
