@@ -1,0 +1,17 @@
+type Vault @model @auth(rules: [{allow: owner, ownerField: "owner"}])
+{
+  assetName: String!
+  encryptedPayload: String!
+  iv: String!
+  salt: String!
+  heirEmail: String!
+  heartbeatIntervalDays: Int!
+  lastHeartbeat: String!
+  status: VaultStatus
+}
+
+enum VaultStatus {
+  ACTIVE
+  TRIGGERED
+  PAUSED
+}

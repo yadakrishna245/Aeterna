@@ -1,15 +1,171 @@
 {
-  "$schema": "https://raw.githubusercontent.com/aws-amplify/amplify-backend/main/packages/client-config/src/client-config-schema/schema_v1.json",
-  "version": "1",
   "auth": {
-    "user_pool_id": "PLACEHOLDER_DEPLOY_SANDBOX_FIRST",
-    "user_pool_client_id": "PLACEHOLDER_DEPLOY_SANDBOX_FIRST",
-    "aws_region": "us-east-1"
+    "user_pool_id": "us-east-1_cCm6NXVrV",
+    "aws_region": "us-east-1",
+    "user_pool_client_id": "3eih3b9hocqhcerrj61tinijvr",
+    "identity_pool_id": "us-east-1:abb7298e-15cc-4c22-a973-3a5ace3fbf8d",
+    "mfa_methods": [],
+    "standard_required_attributes": [
+      "email"
+    ],
+    "username_attributes": [
+      "email"
+    ],
+    "user_verification_types": [
+      "email"
+    ],
+    "groups": [],
+    "mfa_configuration": "NONE",
+    "password_policy": {
+      "min_length": 8,
+      "require_lowercase": true,
+      "require_numbers": true,
+      "require_symbols": true,
+      "require_uppercase": true
+    },
+    "unauthenticated_identities_enabled": true
   },
   "data": {
+    "url": "https://auc5gayebngjblluahj4x2hlbu.appsync-api.us-east-1.amazonaws.com/graphql",
     "aws_region": "us-east-1",
-    "url": "https://placeholder.appsync-api.us-east-1.amazonaws.com/graphql",
     "default_authorization_type": "AMAZON_COGNITO_USER_POOLS",
-    "authorization_types": []
-  }
+    "authorization_types": [
+      "AWS_IAM"
+    ],
+    "model_introspection": {
+      "version": 1,
+      "models": {
+        "Vault": {
+          "name": "Vault",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "assetName": {
+              "name": "assetName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "encryptedPayload": {
+              "name": "encryptedPayload",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "iv": {
+              "name": "iv",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "salt": {
+              "name": "salt",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "heirEmail": {
+              "name": "heirEmail",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "heartbeatIntervalDays": {
+              "name": "heartbeatIntervalDays",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "lastHeartbeat": {
+              "name": "lastHeartbeat",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "status": {
+              "name": "status",
+              "isArray": false,
+              "type": {
+                "enum": "VaultStatus"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "Vaults",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "provider": "userPools",
+                    "ownerField": "owner",
+                    "allow": "owner",
+                    "identityClaim": "cognito:username",
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        }
+      },
+      "enums": {
+        "VaultStatus": {
+          "name": "VaultStatus",
+          "values": [
+            "ACTIVE",
+            "TRIGGERED",
+            "PAUSED"
+          ]
+        }
+      },
+      "nonModels": {}
+    }
+  },
+  "version": "1.5"
 }
