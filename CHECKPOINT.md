@@ -85,6 +85,33 @@
 - [x] DynamoDB Table (active)
 - [x] Lambda Heartbeat Monitor (daily cron)
 - [x] SES Email Notifications
+- [x] One-Click Deploy Script (deploy-new-account.ps1 / .sh)
+- [x] Data Migration Script (migrate-data.ps1 / .sh) — export/import like rsync
+
+### 📂 Document Vault (Life Locker)
+- [x] 10 categories (Financial, Property, Identity, Utilities, Banking, Medical, Legal, Education, Digital, Personal)
+- [x] Upload any file (PDF, images, docs) — AES-256-GCM encrypted
+- [x] Rename documents after upload
+- [x] Add notes per document
+- [x] Preview (images inline, PDF via blob URL)
+- [x] Search across all documents
+- [x] Sort by date or name
+- [x] Free tier: 2 documents, Pro/Family: Unlimited
+
+### ⚖️ Legal & Compliance
+- [x] Terms of Service (19 sections — bulletproof liability protection)
+- [x] Privacy Policy (14 sections — DPDP Act 2023 compliant)
+- [x] Mandatory acceptance at signup (timestamp recorded)
+- [x] Terms accessible from Landing Page, Auth Screen, Dashboard
+- [x] Unclaimed Account Transfer clause (admin gets data if no beneficiary)
+- [x] Admin fallback for orphan accounts (45-day grace → notify admin)
+- [x] Legal Protection Guide (LEGAL_PROTECTION.md — internal)
+
+### 🔔 Smart Warnings
+- [x] Beneficiary limit enforcement (Free:1, Pro:5, Family:∞)
+- [x] "No Beneficiaries" red warning banner (when vaults > 0 but beneficiaries = 0)
+- [x] Key Recovery reminder after adding beneficiary
+- [x] Document upload limit with upgrade prompt
 
 ---
 
@@ -150,11 +177,14 @@ A comprehensive, categorized document storage system. Every document a person ne
 
 ### Other Next Steps
 - [ ] Custom domain (aeterna.in / aeterna.app)
-- [ ] Stripe backend webhook (real payments)
+- [ ] Razorpay payment gateway (register → get API keys → integrate)
 - [ ] WhatsApp Business API for notifications
 - [ ] Mobile app (React Native or PWA)
 - [ ] Marketing: ProductHunt launch, Reddit posts, LinkedIn
 - [ ] Beta users: 50 early adopters for feedback
+- [ ] Register LLP / Pvt Ltd company (personal liability shield)
+- [ ] Lawyer review of Terms of Service (one-time ₹5-10K)
+- [ ] Cyber liability insurance (₹3-5K/year)
 
 ---
 
