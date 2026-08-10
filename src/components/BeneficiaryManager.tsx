@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "../../amplify/data/resource";
 import { encryptData, decryptData } from "../utils/crypto";
+import { useToast } from "./Toast";
 import {
   Users,
   UserPlus,
@@ -83,6 +84,8 @@ export function BeneficiaryManager({ masterPassword }: BeneficiaryManagerProps) 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const toast = useToast();
 
   const decryptBeneficiary = useCallback(
     async (record: BeneficiaryRecord): Promise<DecryptedBeneficiary> => {
@@ -176,10 +179,12 @@ export function BeneficiaryManager({ masterPassword }: BeneficiaryManagerProps) 
 
     if (!formData.name.trim()) {
       setError("Name is required.");
+      toast.error("Name is required.");
       return;
     }
     if (!formData.email.trim() || !formData.email.includes("@")) {
       setError("A valid email is required.");
+      toast.error("A valid email is required.");
       return;
     }
 
@@ -218,8 +223,10 @@ export function BeneficiaryManager({ masterPassword }: BeneficiaryManagerProps) 
           id: editingId,
           ...payload,
         });
+        toast.success("Beneficiary updated successfully");
       } else {
         await (client.models as any).Beneficiary.create(payload);
+        toast.success("Beneficiary added successfully");
       }
 
       handleClosePanel();
@@ -227,6 +234,7 @@ export function BeneficiaryManager({ masterPassword }: BeneficiaryManagerProps) 
     } catch (err) {
       console.error("Failed to save beneficiary:", err);
       setError("Failed to save beneficiary. Please try again.");
+      toast.error("Failed to save beneficiary. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -237,8 +245,10 @@ export function BeneficiaryManager({ masterPassword }: BeneficiaryManagerProps) 
       await (client.models as any).Beneficiary.delete({ id });
       setBeneficiaries((prev) => prev.filter((b) => b.id !== id));
       setDeleteConfirmId(null);
+      toast.success("Beneficiary deleted successfully");
     } catch (err) {
       console.error("Failed to delete beneficiary:", err);
+      toast.error("Failed to delete beneficiary. Please try again.");
     }
   };
 

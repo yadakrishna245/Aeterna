@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "../../amplify/data/resource";
 import { encryptData, decryptData } from "../utils/crypto";
+import { useToast } from "./Toast";
 import { FileUpload } from "./FileUpload";
 import { VideoRecorder } from "./VideoRecorder";
 import {
@@ -52,6 +53,8 @@ export function AddAssetModal({ masterPassword, onClose, onAdded }: AddAssetModa
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  const toast = useToast();
+
   // Fetch and decrypt beneficiaries for the selector
   const fetchBeneficiaries = useCallback(async () => {
     try {
@@ -94,26 +97,32 @@ export function AddAssetModal({ masterPassword, onClose, onAdded }: AddAssetModa
     // Validation
     if (!assetName.trim()) {
       setError("Asset name is required.");
+      toast.error("Asset name is required.");
       return;
     }
     if (!secretData.trim()) {
       setError("Secret data is required.");
+      toast.error("Secret data is required.");
       return;
     }
     if (!heirEmail.trim() || !heirEmail.includes("@")) {
       setError("A valid heir email is required.");
+      toast.error("A valid heir email is required.");
       return;
     }
     if (triggerType === "heartbeat" && (intervalDays < 1 || intervalDays > 365)) {
       setError("Heartbeat interval must be between 1 and 365 days.");
+      toast.error("Heartbeat interval must be between 1 and 365 days.");
       return;
     }
     if (triggerType === "scheduled" && !scheduledDate) {
       setError("Please select a scheduled date.");
+      toast.error("Please select a scheduled date.");
       return;
     }
     if (gracePeriodDays < 1 || gracePeriodDays > 90) {
       setError("Grace period must be between 1 and 90 days.");
+      toast.error("Grace period must be between 1 and 90 days.");
       return;
     }
 
@@ -149,10 +158,12 @@ export function AddAssetModal({ masterPassword, onClose, onAdded }: AddAssetModa
         remindersSent: 0,
       } as any);
 
+      toast.success("Vault created and encrypted!");
       onAdded();
     } catch (err) {
       console.error("Failed to create vault:", err);
       setError("Failed to save vault. Please try again.");
+      toast.error("Failed to save vault. Please try again.");
     } finally {
       setSubmitting(false);
     }

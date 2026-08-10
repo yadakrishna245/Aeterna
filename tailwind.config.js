@@ -30,6 +30,8 @@ export default {
         "fade-in": "fadeIn 0.3s ease-in-out",
         "slide-up": "slideUp 0.3s ease-out",
         "slide-in-right": "slideInRight 0.3s ease-out",
+        "toast-in": "toastIn 0.3s ease-out forwards",
+        "toast-out": "toastOut 0.3s ease-in forwards",
       },
       keyframes: {
         fadeIn: {
@@ -43,6 +45,14 @@ export default {
         slideInRight: {
           "0%": { opacity: "0", transform: "translateX(100%)" },
           "100%": { opacity: "1", transform: "translateX(0)" },
+        },
+        toastIn: {
+          "0%": { opacity: "0", transform: "translateX(100%)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
+        toastOut: {
+          "0%": { opacity: "1", transform: "translateX(0)" },
+          "100%": { opacity: "0", transform: "translateX(100%)" },
         },
       },
     },

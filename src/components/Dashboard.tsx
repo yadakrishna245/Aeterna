@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "../../amplify/data/resource";
 import { decryptData } from "../utils/crypto";
+import { exportVaultBackup } from "../utils/exportVault";
+import { useAutoLock } from "../hooks/useAutoLock";
+import { useToast } from "./Toast";
 import {
   Shield,
   ShieldCheck,
@@ -18,9 +21,13 @@ import {
   AlertTriangle,
   Users,
   Calendar,
+  Activity,
+  Download,
+  Timer,
 } from "lucide-react";
 import { AddAssetModal } from "./AddAssetModal";
 import { BeneficiaryManager } from "./BeneficiaryManager";
+import { ActivityLog, logActivity } from "./ActivityLog";
 
 const client = generateClient<Schema>();
 
@@ -48,6 +55,13 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
   const [decryptedMeta, setDecryptedMeta] = useState<Record<string, DecryptedVaultMeta>>({});
   const [decryptingId, setDecryptingId] = useState<string | null>(null);
   const [checkingIn, setCheckingIn] = useState(false);
+  const [activeTab, setActiveTab] = useState<"vaults" | "activity">("vaults");
+  const [exportingBackup, setExportingBackup] = useState(false);
+
+  const toast = useToast();
+
+  // Auto-lock after 5 minutes of inactivity
+  const { remainingSeconds } = useAutoLock({ onLock });
 
   /**
    * Decrypt the encrypted metadata fields (assetName, heirEmail) for display.
@@ -148,8 +162,14 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
         )
       );
       await fetchVaults();
+      await logActivity("CHECK_IN");
+
+      // Calculate new days left for toast message
+      const minInterval = Math.min(...activeVaults.map((v) => v.heartbeatIntervalDays));
+      toast.success(`Heartbeat recorded! You're safe for ${minInterval} more days.`);
     } catch (err) {
       console.error("Check-in failed:", err);
+      toast.error("Check-in failed. Please try again.");
     } finally {
       setCheckingIn(false);
     }
@@ -178,8 +198,9 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
         masterPassword
       );
       setDecryptedItems((prev) => ({ ...prev, [vault.id]: plaintext }));
+      await logActivity("VAULT_DECRYPTED");
     } catch (err) {
-      alert("Decryption failed. Wrong master password or corrupted data.");
+      toast.error("Decryption failed. Wrong master password?");
       console.error(err);
     } finally {
       setDecryptingId(null);
@@ -202,8 +223,11 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
         delete next[id];
         return next;
       });
+      toast.success("Vault deleted successfully");
+      await logActivity("VAULT_DELETED");
     } catch (err) {
       console.error("Delete failed:", err);
+      toast.error("Failed to delete vault. Please try again.");
     }
   };
 
@@ -220,6 +244,28 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
   const daysLeft = getNextHeartbeatDays();
   const isUrgent = daysLeft !== null && daysLeft <= 3;
 
+  // Export vault backup
+  const handleExportBackup = async () => {
+    setExportingBackup(true);
+    try {
+      const blob = await exportVaultBackup(vaults, masterPassword);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `aeterna-backup-${new Date().toISOString().slice(0, 10)}.aeterna`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Backup exported! Store this file safely.");
+    } catch (err) {
+      console.error("Export failed:", err);
+      toast.error("Export failed. Please try again.");
+    } finally {
+      setExportingBackup(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-navy-950">
       {/* Header */}
@@ -233,6 +279,21 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
             </span>
           </div>
           <div className="flex items-center gap-3">
+            {remainingSeconds < 60 && (
+              <span className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-full animate-pulse">
+                <Timer className="w-3 h-3" />
+                {remainingSeconds}s
+              </span>
+            )}
+            <button
+              onClick={handleExportBackup}
+              disabled={exportingBackup || vaults.length === 0}
+              className="btn-outline flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Export encrypted backup"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Export
+            </button>
             <button
               onClick={onLock}
               className="btn-outline flex items-center gap-2 text-sm"
@@ -324,7 +385,7 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
           <button
             onClick={() => {
               if (vaults.filter((v) => v.status === "ACTIVE").length === 0) {
-                alert("Add at least one vault first to activate the Dead Man's Switch.");
+                toast.warning("Add a vault first to activate Dead Man's Switch");
                 return;
               }
               handleCheckIn();
@@ -376,6 +437,43 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
           )}
         </div>
 
+        {/* Tab Navigation */}
+        <div className="flex items-center gap-1 bg-navy-900 rounded-lg p-1 border border-navy-800">
+          <button
+            onClick={() => setActiveTab("vaults")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              activeTab === "vaults"
+                ? "bg-navy-700 text-slate-100 shadow-sm"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <Lock className="w-4 h-4" />
+            Vaults
+          </button>
+          <button
+            onClick={() => setActiveTab("activity")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              activeTab === "activity"
+                ? "bg-navy-700 text-slate-100 shadow-sm"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <Activity className="w-4 h-4" />
+            Activity
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === "activity" ? (
+          <div className="card">
+            <div className="flex items-center gap-2 mb-6">
+              <Activity className="w-5 h-5 text-gold" />
+              <h2 className="text-lg font-semibold text-slate-100">Activity History</h2>
+            </div>
+            <ActivityLog />
+          </div>
+        ) : (
+        <>
         {/* Vault List */}
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-100">Your Vaults</h2>
@@ -506,6 +604,8 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
               );
             })}
           </div>
+        )}
+        </>
         )}
 
         {/* Footer */}

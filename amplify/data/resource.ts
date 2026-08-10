@@ -47,6 +47,14 @@ const schema = a.schema({
       accessLevel: a.enum(["FULL", "PARTIAL", "MESSAGE_ONLY"]),
     })
     .authorization((allow) => [allow.owner()]),
+
+  ActivityLog: a
+    .model({
+      action: a.string().required(),
+      timestamp: a.string().required(),
+      metadata: a.string(),
+    })
+    .authorization((allow) => [allow.owner()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;

@@ -4,6 +4,7 @@ import "@aws-amplify/ui-react/styles.css";
 import { Shield, Lock, Eye, EyeOff } from "lucide-react";
 import { Dashboard } from "./Dashboard";
 import { LandingPage } from "./LandingPage";
+import { PasswordStrength } from "./PasswordStrength";
 
 export function AuthGate() {
   const [showAuth, setShowAuth] = useState(false);
@@ -108,6 +109,7 @@ function MasterPasswordGate({ signOut, user }: MasterPasswordGateProps) {
             {error && (
               <p className="text-red-400 text-xs mt-1.5">{error}</p>
             )}
+            <PasswordStrength password={passwordInput} />
           </div>
 
           <button type="submit" className="btn-gold w-full">
