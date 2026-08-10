@@ -99,6 +99,7 @@ flowchart TD
     subgraph Tabs[Feature Tabs]
         G[🔒 Vaults] --> G1[Your encrypted secrets]
         H[📊 Activity] --> H1[Audit log of all actions]
+        H2[📂 Documents] --> H3[Life Locker - 10 categories]
         I[🔑 2FA Vault] --> I1[TOTP codes + backup keys]
         J[📬 Time Capsules] --> J1[Messages for future dates]
         K[📖 Access Guide] --> K1[Service recovery instructions]
@@ -115,6 +116,7 @@ flowchart TD
 |-----|-------------|
 | **Vaults** | Create, view, decrypt, and delete encrypted vault entries |
 | **Activity** | See every action you've taken (check-ins, decrypts, deletes) |
+| **Documents** | Life Locker — upload, rename, preview documents across 10 categories (Financial, Property, Identity, Utilities, Banking, Medical, Legal, Education, Digital, Personal). Free: 2 docs, Pro/Family: Unlimited |
 | **2FA Vault** | Store your TOTP secrets and backup codes per service |
 | **Time Capsules** | Schedule encrypted messages for milestones (wedding, birthday) |
 | **Access Guide** | Step-by-step questionnaire → generates recovery guides for your heirs |
@@ -215,4 +217,4 @@ npx ampx sandbox     # Deploy backend (Cognito + DynamoDB + Lambda)
 
 ---
 
-**Built with** ❤️ **by Krishna** | 25+ Working Features | AWS Serverless
+**Built with** ❤️ **by Krishna** | 30+ Working Features | AWS Serverless
