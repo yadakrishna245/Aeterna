@@ -2,14 +2,19 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Upload, Trash2, Edit3, Eye, Search, FolderOpen, Plus, X,
   Download, SortAsc, Building2, CreditCard, Heart, Scale, GraduationCap,
-  Monitor, Package, Landmark, Home, Fuel
+  Monitor, Package, Landmark, Home, Fuel, Cloud
 } from 'lucide-react';
 import { encryptBinary, decryptBinary } from '../utils/crypto';
 import { getCurrentPlan } from '../utils/subscription';
+import { uploadData, downloadData, remove } from 'aws-amplify/storage';
+import { generateClient } from 'aws-amplify/data';
+import type { Schema } from '../../amplify/data/resource';
+
+const client = generateClient<Schema>();
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-interface StoredDocument {
+interface DocumentMeta {
   id: string;
   name: string;
   originalName: string;
@@ -17,10 +22,11 @@ interface StoredDocument {
   notes: string;
   mimeType: string;
   size: number;
-  uploadedAt: string;
-  encryptedData: string;
+  s3Key: string;
   iv: string;
   salt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface Category {
@@ -36,7 +42,6 @@ type SortMode = 'date' | 'name';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = 'aeterna_documents';
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const CATEGORIES: Category[] = [
@@ -53,24 +58,6 @@ const CATEGORIES: Category[] = [
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function bufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
-
-function base64ToBuffer(base64: string): ArrayBuffer {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 B';
@@ -94,24 +81,11 @@ function getFileTypeIcon(mimeType: string): string {
   return '📎';
 }
 
-function loadDocuments(): StoredDocument[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as StoredDocument[];
-  } catch {
-    return [];
-  }
-}
-
-function saveDocuments(docs: StoredDocument[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(docs));
-}
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function DocumentVault({ masterPassword }: { masterPassword: string }) {
-  const [documents, setDocuments] = useState<StoredDocument[]>(loadDocuments);
+  const [documents, setDocuments] = useState<DocumentMeta[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('financial');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('date');
@@ -120,6 +94,7 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
   const [editNotes, setEditNotes] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewMime, setPreviewMime] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -134,10 +109,36 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
   const totalDocuments = documents.length;
   const canUploadMore = !isFreeTier || totalDocuments < FREE_TIER_LIMIT;
 
-  // Persist documents on change
+  // ─── Load Documents from DynamoDB ──────────────────────────────────────────
   useEffect(() => {
-    saveDocuments(documents);
-  }, [documents]);
+    async function loadDocs() {
+      try {
+        setLoading(true);
+        const { data: docs } = await client.models.Document.list();
+        const mapped: DocumentMeta[] = (docs || []).map((d) => ({
+          id: d.id,
+          name: d.name,
+          originalName: d.originalName,
+          category: d.category,
+          notes: d.notes || '',
+          mimeType: d.mimeType,
+          size: d.size,
+          s3Key: d.s3Key,
+          iv: d.iv,
+          salt: d.salt,
+          createdAt: d.createdAt || undefined,
+          updatedAt: d.updatedAt || undefined,
+        }));
+        setDocuments(mapped);
+      } catch (err) {
+        console.error('Failed to load documents:', err);
+        setError('Failed to load documents from cloud. Please refresh.');
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadDocs();
+  }, []);
 
   // Cleanup preview URL on unmount
   useEffect(() => {
@@ -147,13 +148,11 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
   }, [previewUrl]);
 
   // ─── Upload Handler ──────────────────────────────────────────────────────
-
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     if (isFreeTier && totalDocuments >= FREE_TIER_LIMIT) {
-      // Show upgrade message - don't allow upload
       setShowUpgradePrompt(true);
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
@@ -171,27 +170,60 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
           continue;
         }
 
+        // Check free tier limit for each file in batch
+        if (isFreeTier && (totalDocuments + i) >= FREE_TIER_LIMIT) {
+          setError(`Free tier limit reached. Remaining files skipped.`);
+          break;
+        }
+
+        // 1. Encrypt the file client-side
         const arrayBuffer = await file.arrayBuffer();
         const encrypted = await encryptBinary(arrayBuffer, masterPassword);
 
-        const doc: StoredDocument = {
-          id: crypto.randomUUID(),
+        // 2. Upload encrypted blob to S3
+        const docId = crypto.randomUUID();
+        const s3Key = `documents/${docId}/${file.name}.enc`;
+
+        await uploadData({
+          path: s3Key,
+          data: new Blob([encrypted.ciphertext]),
+          options: {
+            contentType: 'application/octet-stream',
+          },
+        }).result;
+
+        // 3. Save metadata to DynamoDB
+        const { data: created } = await client.models.Document.create({
           name: file.name.replace(/\.[^/.]+$/, ''),
           originalName: file.name,
           category: activeCategory,
           notes: '',
           mimeType: file.type || 'application/octet-stream',
           size: file.size,
-          uploadedAt: new Date().toISOString(),
-          encryptedData: bufferToBase64(encrypted.ciphertext),
+          s3Key: s3Key,
           iv: encrypted.iv,
           salt: encrypted.salt,
-        };
+        });
 
-        setDocuments(prev => [...prev, doc]);
+        if (created) {
+          setDocuments(prev => [...prev, {
+            id: created.id,
+            name: created.name,
+            originalName: created.originalName,
+            category: created.category,
+            notes: created.notes || '',
+            mimeType: created.mimeType,
+            size: created.size,
+            s3Key: created.s3Key,
+            iv: created.iv,
+            salt: created.salt,
+            createdAt: created.createdAt || undefined,
+            updatedAt: created.updatedAt || undefined,
+          }]);
+        }
       }
     } catch (err) {
-      setError('Encryption failed. Please try again.');
+      setError('Upload failed. Please try again.');
       console.error('Upload error:', err);
     } finally {
       setUploading(false);
@@ -200,17 +232,21 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
   }, [activeCategory, masterPassword, isFreeTier, totalDocuments]);
 
   // ─── Preview Handler ─────────────────────────────────────────────────────
-
-  const handlePreview = useCallback(async (doc: StoredDocument) => {
+  const handlePreview = useCallback(async (doc: DocumentMeta) => {
     try {
-      const cipherBuffer = base64ToBuffer(doc.encryptedData);
+      // Download encrypted blob from S3
+      const result = await downloadData({ path: doc.s3Key }).result;
+      const encBlob = await result.body.blob();
+      const cipherBuffer = await encBlob.arrayBuffer();
+
+      // Decrypt locally
       const decrypted = await decryptBinary(
         { ciphertext: cipherBuffer, iv: doc.iv, salt: doc.salt },
         masterPassword
       );
 
-      const blob = new Blob([decrypted], { type: doc.mimeType });
-      const url = URL.createObjectURL(blob);
+      const fileBlob = new Blob([decrypted], { type: doc.mimeType });
+      const url = URL.createObjectURL(fileBlob);
 
       if (doc.mimeType === 'application/pdf') {
         window.open(url, '_blank');
@@ -220,7 +256,6 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
         setPreviewUrl(url);
         setPreviewMime(doc.mimeType);
       } else {
-        // Download for other types
         const a = document.createElement('a');
         a.href = url;
         a.download = doc.originalName;
@@ -228,49 +263,61 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
         setTimeout(() => URL.revokeObjectURL(url), 5000);
       }
     } catch (err) {
-      setError('Decryption failed. Wrong master password?');
+      setError('Failed to download/decrypt file. Please try again.');
       console.error('Preview error:', err);
     }
   }, [masterPassword, previewUrl]);
 
   // ─── Download Handler ────────────────────────────────────────────────────
-
-  const handleDownload = useCallback(async (doc: StoredDocument) => {
+  const handleDownload = useCallback(async (doc: DocumentMeta) => {
     try {
-      const cipherBuffer = base64ToBuffer(doc.encryptedData);
+      const result = await downloadData({ path: doc.s3Key }).result;
+      const encBlob = await result.body.blob();
+      const cipherBuffer = await encBlob.arrayBuffer();
+
       const decrypted = await decryptBinary(
         { ciphertext: cipherBuffer, iv: doc.iv, salt: doc.salt },
         masterPassword
       );
 
-      const blob = new Blob([decrypted], { type: doc.mimeType });
-      const url = URL.createObjectURL(blob);
+      const fileBlob = new Blob([decrypted], { type: doc.mimeType });
+      const url = URL.createObjectURL(fileBlob);
       const a = document.createElement('a');
       a.href = url;
       a.download = doc.originalName;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
     } catch (err) {
-      setError('Decryption failed during download.');
+      setError('Download failed. Please try again.');
       console.error('Download error:', err);
     }
   }, [masterPassword]);
 
   // ─── Edit Handlers ───────────────────────────────────────────────────────
-
-  const startEdit = (doc: StoredDocument) => {
+  const startEdit = (doc: DocumentMeta) => {
     setEditingId(doc.id);
     setEditName(doc.name);
     setEditNotes(doc.notes);
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (!editingId) return;
-    setDocuments(prev =>
-      prev.map(d =>
-        d.id === editingId ? { ...d, name: editName.trim() || d.name, notes: editNotes } : d
-      )
-    );
+    try {
+      const newName = editName.trim() || documents.find(d => d.id === editingId)?.name || '';
+      await client.models.Document.update({
+        id: editingId,
+        name: newName,
+        notes: editNotes,
+      });
+      setDocuments(prev =>
+        prev.map(d =>
+          d.id === editingId ? { ...d, name: newName, notes: editNotes } : d
+        )
+      );
+    } catch (err) {
+      setError('Failed to save changes.');
+      console.error('Edit error:', err);
+    }
     setEditingId(null);
   };
 
@@ -279,14 +326,24 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
   };
 
   // ─── Delete Handler ──────────────────────────────────────────────────────
+  const confirmDelete = async (id: string) => {
+    const doc = documents.find(d => d.id === id);
+    if (!doc) return;
 
-  const confirmDelete = (id: string) => {
-    setDocuments(prev => prev.filter(d => d.id !== id));
+    try {
+      // Delete from S3
+      await remove({ path: doc.s3Key });
+      // Delete from DynamoDB
+      await client.models.Document.delete({ id });
+      setDocuments(prev => prev.filter(d => d.id !== id));
+    } catch (err) {
+      setError('Failed to delete document.');
+      console.error('Delete error:', err);
+    }
     setDeleteConfirmId(null);
   };
 
   // ─── Filtering & Sorting ─────────────────────────────────────────────────
-
   const filteredDocuments = documents
     .filter(d => {
       if (searchQuery) {
@@ -301,14 +358,28 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
     })
     .sort((a, b) => {
       if (sortMode === 'name') return a.name.localeCompare(b.name);
-      return new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime();
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
     });
 
   const getCategoryCount = (catId: string) => documents.filter(d => d.category === catId).length;
   const totalDocs = documents.length;
   const currentCategory = CATEGORIES.find(c => c.id === activeCategory)!;
 
+
   // ─── Render ──────────────────────────────────────────────────────────────
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-navy-950 text-slate-200 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-400">Loading documents from cloud...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-navy-950 text-slate-200">
@@ -323,16 +394,16 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
               <div>
                 <h1 className="text-xl font-bold text-slate-100">Document Vault</h1>
                 <p className="text-xs text-slate-400">
-                  {totalDocs} document{totalDocs !== 1 ? 's' : ''} • AES-256 encrypted
+                  {totalDocs} document{totalDocs !== 1 ? 's' : ''} • AES-256 encrypted •{' '}
+                  <Cloud className="w-3 h-3 inline text-emerald-400" /> Cloud synced
                   {' • '}
                   <span className={isFreeTier ? 'text-amber-400' : 'text-emerald-400'}>
-                    {isFreeTier ? `${totalDocuments}/${FREE_TIER_LIMIT} documents (Free)` : `Unlimited (${currentPlan === 'pro' ? 'Pro' : 'Family'})`}
+                    {isFreeTier ? `${totalDocuments}/${FREE_TIER_LIMIT} (Free)` : `Unlimited (${currentPlan === 'pro' ? 'Pro' : 'Family'})`}
                   </span>
                 </p>
               </div>
             </div>
 
-            {/* Mobile sidebar toggle */}
             <button
               onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
               className="lg:hidden btn-outline px-3 py-2 text-sm"
@@ -420,16 +491,16 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
             </div>
           )}
 
-          {/* Upgrade Prompt / Free Tier Limit Banner */}
+          {/* Free Tier Limit Banner */}
           {isFreeTier && !canUploadMore && (
             <div className="bg-gold/5 border border-gold/20 rounded-xl p-4 text-center mb-4">
-              <p className="text-sm text-slate-300 mb-2">You've reached the free tier limit (2 documents)</p>
-              <p className="text-xs text-slate-400 mb-3">Upgrade to Pro (₹499/year) or Family (₹999/year) for unlimited document storage</p>
+              <p className="text-sm text-slate-300 mb-2">You have reached the free tier limit (2 documents)</p>
+              <p className="text-xs text-slate-400 mb-3">Upgrade to Pro or Family for unlimited document storage</p>
               <button className="btn-gold text-sm px-4 py-2">Upgrade Plan</button>
             </div>
           )}
 
-          {/* Upgrade Prompt Modal (shown when user clicks upload at limit) */}
+          {/* Upgrade Prompt Modal */}
           {showUpgradePrompt && (
             <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowUpgradePrompt(false)} role="dialog" aria-label="Upgrade prompt">
               <div className="bg-navy-800 border border-navy-600 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -437,8 +508,8 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
                   <Upload className="w-6 h-6 text-amber-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-slate-100 mb-2">Free Tier Limit Reached</h3>
-                <p className="text-sm text-slate-300 mb-2">You've reached the free tier limit of {FREE_TIER_LIMIT} documents.</p>
-                <p className="text-xs text-slate-400 mb-4">Upgrade to Pro (₹499/year) or Family (₹999/year) for unlimited document storage.</p>
+                <p className="text-sm text-slate-300 mb-2">You have reached the limit of {FREE_TIER_LIMIT} documents.</p>
+                <p className="text-xs text-slate-400 mb-4">Upgrade to Pro or Family for unlimited cloud document storage.</p>
                 <div className="flex gap-3 justify-center">
                   <button onClick={() => setShowUpgradePrompt(false)} className="btn-outline px-4 py-2 text-sm">Maybe Later</button>
                   <button className="btn-gold px-4 py-2 text-sm">Upgrade Plan</button>
@@ -458,7 +529,6 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
               </div>
 
               <div className="flex items-center gap-2">
-                {/* Sort Toggle */}
                 <button
                   onClick={() => setSortMode(prev => prev === 'date' ? 'name' : 'date')}
                   className="btn-outline px-3 py-2 text-xs flex items-center gap-1.5"
@@ -469,7 +539,6 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
                   {sortMode === 'date' ? 'Date' : 'Name'}
                 </button>
 
-                {/* Upload Button */}
                 <button
                   onClick={() => {
                     if (!canUploadMore) {
@@ -480,14 +549,14 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
                   }}
                   disabled={uploading}
                   className="btn-gold px-4 py-2 text-sm flex items-center gap-2 disabled:opacity-50"
-                  aria-label={canUploadMore ? "Upload document" : "Upgrade to upload more documents"}
+                  aria-label={canUploadMore ? "Upload document" : "Upgrade to upload more"}
                 >
                   {uploading ? (
                     <div className="w-4 h-4 border-2 border-navy-900 border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <Plus className="w-4 h-4" />
                   )}
-                  Upload
+                  {uploading ? 'Uploading...' : 'Upload'}
                 </button>
 
                 <input
@@ -507,7 +576,7 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
           {searchQuery && (
             <div className="mb-4">
               <p className="text-sm text-slate-400">
-                {filteredDocuments.length} result{filteredDocuments.length !== 1 ? 's' : ''} for "{searchQuery}"
+                {filteredDocuments.length} result{filteredDocuments.length !== 1 ? 's' : ''} for &quot;{searchQuery}&quot;
               </p>
             </div>
           )}
@@ -575,7 +644,6 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
 }
 
 
-
 // ─── Sub-Components ──────────────────────────────────────────────────────────
 
 function EmptyState({
@@ -640,18 +708,18 @@ function DocumentCard({
   onDeleteConfirm,
   onDeleteCancel,
 }: {
-  doc: StoredDocument;
+  doc: DocumentMeta;
   isEditing: boolean;
   editName: string;
   editNotes: string;
   deleteConfirmId: string | null;
   onEditNameChange: (v: string) => void;
   onEditNotesChange: (v: string) => void;
-  onStartEdit: (doc: StoredDocument) => void;
+  onStartEdit: (doc: DocumentMeta) => void;
   onSaveEdit: () => void;
   onCancelEdit: () => void;
-  onPreview: (doc: StoredDocument) => void;
-  onDownload: (doc: StoredDocument) => void;
+  onPreview: (doc: DocumentMeta) => void;
+  onDownload: (doc: DocumentMeta) => void;
   onDeleteRequest: (id: string) => void;
   onDeleteConfirm: (id: string) => void;
   onDeleteCancel: () => void;
@@ -689,18 +757,15 @@ function DocumentCard({
                 aria-label="Document notes"
               />
               <div className="flex gap-2">
-                <button onClick={onSaveEdit} className="btn-gold px-3 py-1 text-xs">
-                  Save
-                </button>
-                <button onClick={onCancelEdit} className="btn-outline px-3 py-1 text-xs">
-                  Cancel
-                </button>
+                <button onClick={onSaveEdit} className="btn-gold px-3 py-1 text-xs">Save</button>
+                <button onClick={onCancelEdit} className="btn-outline px-3 py-1 text-xs">Cancel</button>
               </div>
             </div>
           ) : (
             <>
               <div className="flex items-center gap-2">
                 <h4 className="text-sm font-medium text-slate-200 truncate">{doc.name}</h4>
+                <Cloud className="w-3 h-3 text-emerald-500 shrink-0" />
                 {doc.originalName !== doc.name && (
                   <span className="text-xs text-slate-600 truncate hidden sm:inline">
                     ({doc.originalName})
@@ -713,7 +778,7 @@ function DocumentCard({
               <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500">
                 <span>{formatFileSize(doc.size)}</span>
                 <span>•</span>
-                <span>{formatDate(doc.uploadedAt)}</span>
+                <span>{doc.createdAt ? formatDate(doc.createdAt) : 'Just now'}</span>
                 <span className="hidden sm:inline">•</span>
                 <span className="hidden sm:inline truncate">{doc.mimeType.split('/')[1]?.toUpperCase()}</span>
               </div>

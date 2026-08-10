@@ -55,6 +55,20 @@ const schema = a.schema({
       metadata: a.string(),
     })
     .authorization((allow) => [allow.owner()]),
+
+  Document: a
+    .model({
+      name: a.string().required(),
+      originalName: a.string().required(),
+      category: a.string().required(),
+      notes: a.string(),
+      mimeType: a.string().required(),
+      size: a.integer().required(),
+      s3Key: a.string().required(),
+      iv: a.string().required(),
+      salt: a.string().required(),
+    })
+    .authorization((allow) => [allow.owner()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
