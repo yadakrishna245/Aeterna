@@ -143,11 +143,10 @@ export function AddAssetModal({ masterPassword, onClose, onAdded }: AddAssetModa
         heartbeatIntervalDays: intervalDays,
         lastHeartbeat: new Date().toISOString(),
         status: "ACTIVE",
-        // New fields (will need schema update to persist)
-        // triggerType,
-        // scheduledDate: triggerType === "scheduled" ? scheduledDate : undefined,
-        // gracePeriodDays,
-        // beneficiaryIds: selectedBeneficiaryIds,
+        gracePeriodDays,
+        triggerType: triggerType === "scheduled" ? "SCHEDULED_DATE" : "HEARTBEAT",
+        scheduledTriggerDate: triggerType === "scheduled" ? scheduledDate : undefined,
+        remindersSent: 0,
       } as any);
 
       onAdded();

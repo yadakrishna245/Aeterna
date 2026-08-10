@@ -35,8 +35,8 @@ const schema = a.schema({
       encryptedEmail: a.string().required(),
       encryptedPhone: a.string(),
       relationship: a.string(),
-      iv: a.string().required(),
-      salt: a.string().required(),
+      iv: a.string(),
+      salt: a.string(),
     })
     .authorization((allow) => [allow.owner()]),
 
