@@ -53,16 +53,27 @@ export function AddAssetModal({ masterPassword, onClose, onAdded }: AddAssetModa
     setSubmitting(true);
 
     try {
-      // Encrypt the secret data using the master password
-      const encrypted = await encryptData(secretData, masterPassword);
+      // Encrypt ALL sensitive fields using the master password
+      const encryptedSecret = await encryptData(secretData, masterPassword);
+      const encryptedName = await encryptData(assetName.trim(), masterPassword);
+      const encryptedEmail = await encryptData(heirEmail.trim().toLowerCase(), masterPassword);
 
       // Store in DynamoDB — only ciphertext goes to the server
+      // assetName and heirEmail are now encrypted client-side too
       await client.models.Vault.create({
-        assetName: assetName.trim(),
-        encryptedPayload: encrypted.ciphertext,
-        iv: encrypted.iv,
-        salt: encrypted.salt,
-        heirEmail: heirEmail.trim().toLowerCase(),
+        encryptedAssetName: JSON.stringify({
+          ciphertext: encryptedName.ciphertext,
+          iv: encryptedName.iv,
+          salt: encryptedName.salt,
+        }),
+        encryptedPayload: encryptedSecret.ciphertext,
+        iv: encryptedSecret.iv,
+        salt: encryptedSecret.salt,
+        encryptedHeirEmail: JSON.stringify({
+          ciphertext: encryptedEmail.ciphertext,
+          iv: encryptedEmail.iv,
+          salt: encryptedEmail.salt,
+        }),
         heartbeatIntervalDays: intervalDays,
         lastHeartbeat: new Date().toISOString(),
         status: "ACTIVE",
@@ -156,7 +167,7 @@ export function AddAssetModal({ masterPassword, onClose, onAdded }: AddAssetModa
               className="input-field"
             />
             <p className="text-xs text-slate-600 mt-1">
-              This person will be notified if your Dead Man's Switch triggers.
+              🔒 This email will be encrypted. Only you can see it with your master password.
             </p>
           </div>
 
@@ -220,7 +231,7 @@ export function AddAssetModal({ masterPassword, onClose, onAdded }: AddAssetModa
         {/* Security Footer */}
         <div className="px-6 py-3 border-t border-navy-700 bg-navy-900/50 rounded-b-2xl">
           <p className="text-xs text-slate-600 text-center">
-            🛡️ AES-256-GCM encryption • PBKDF2 key derivation • Data encrypted client-side
+            🛡️ AES-256-GCM encryption • PBKDF2 key derivation • ALL fields encrypted client-side
           </p>
         </div>
       </div>

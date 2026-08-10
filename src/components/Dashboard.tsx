@@ -30,24 +30,68 @@ interface DashboardProps {
 
 type VaultItem = Schema["Vault"]["type"];
 
+interface DecryptedVaultMeta {
+  assetName: string;
+  heirEmail: string;
+}
+
 export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardProps) {
   const [vaults, setVaults] = useState<VaultItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [decryptedItems, setDecryptedItems] = useState<Record<string, string>>({});
+  const [decryptedMeta, setDecryptedMeta] = useState<Record<string, DecryptedVaultMeta>>({});
   const [decryptingId, setDecryptingId] = useState<string | null>(null);
   const [checkingIn, setCheckingIn] = useState(false);
+
+  /**
+   * Decrypt the encrypted metadata fields (assetName, heirEmail) for display.
+   * On failure (wrong password or corrupted data), shows '[Encrypted]' placeholder.
+   */
+  const decryptVaultMeta = useCallback(
+    async (vault: VaultItem): Promise<DecryptedVaultMeta> => {
+      let assetName = "[Encrypted]";
+      let heirEmail = "[Encrypted]";
+
+      try {
+        const nameData = JSON.parse(vault.encryptedAssetName);
+        assetName = await decryptData(nameData, masterPassword);
+      } catch {
+        // Failed to decrypt — show placeholder
+      }
+
+      try {
+        const emailData = JSON.parse(vault.encryptedHeirEmail);
+        heirEmail = await decryptData(emailData, masterPassword);
+      } catch {
+        // Failed to decrypt — show placeholder
+      }
+
+      return { assetName, heirEmail };
+    },
+    [masterPassword]
+  );
 
   const fetchVaults = useCallback(async () => {
     try {
       const { data } = await client.models.Vault.list();
-      setVaults(data || []);
+      const vaultData = data || [];
+      setVaults(vaultData);
+
+      // Decrypt all vault metadata for display
+      const metaMap: Record<string, DecryptedVaultMeta> = {};
+      await Promise.all(
+        vaultData.map(async (vault) => {
+          metaMap[vault.id] = await decryptVaultMeta(vault);
+        })
+      );
+      setDecryptedMeta(metaMap);
     } catch (err) {
       console.error("Failed to fetch vaults:", err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [decryptVaultMeta]);
 
   useEffect(() => {
     fetchVaults();
@@ -94,7 +138,7 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
     }
   };
 
-  // Decrypt a vault item
+  // Decrypt a vault item's secret payload
   const handleDecrypt = async (vault: VaultItem) => {
     if (decryptedItems[vault.id]) {
       // Toggle off
@@ -132,6 +176,11 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
       await client.models.Vault.delete({ id });
       setVaults((prev) => prev.filter((v) => v.id !== id));
       setDecryptedItems((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setDecryptedMeta((prev) => {
         const next = { ...prev };
         delete next[id];
         return next;
@@ -286,78 +335,85 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
           </div>
         ) : (
           <div className="space-y-3">
-            {vaults.map((vault) => (
-              <div
-                key={vault.id}
-                className="card flex flex-col md:flex-row md:items-center gap-4 animate-slide-up"
-              >
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-slate-100 truncate">
-                      {vault.assetName}
-                    </h3>
-                    {vault.status === "TRIGGERED" && (
-                      <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full border border-red-500/30 flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3" />
-                        Triggered
-                      </span>
-                    )}
-                    {vault.status === "PAUSED" && (
-                      <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full border border-yellow-500/30">
-                        Paused
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <Mail className="w-3 h-3" />
-                      {vault.heirEmail}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      Every {vault.heartbeatIntervalDays} days
-                    </span>
-                  </div>
+            {vaults.map((vault) => {
+              const meta = decryptedMeta[vault.id] || {
+                assetName: "[Encrypted]",
+                heirEmail: "[Encrypted]",
+              };
 
-                  {/* Decrypted content */}
-                  {decryptedItems[vault.id] && (
-                    <div className="mt-3 p-3 bg-navy-950 border border-gold/20 rounded-lg">
-                      <p className="text-xs text-gold mb-1 font-medium">🔓 Decrypted Secret:</p>
-                      <pre className="text-sm text-slate-200 font-mono whitespace-pre-wrap break-all">
-                        {decryptedItems[vault.id]}
-                      </pre>
+              return (
+                <div
+                  key={vault.id}
+                  className="card flex flex-col md:flex-row md:items-center gap-4 animate-slide-up"
+                >
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-slate-100 truncate">
+                        {meta.assetName}
+                      </h3>
+                      {vault.status === "TRIGGERED" && (
+                        <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full border border-red-500/30 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          Triggered
+                        </span>
+                      )}
+                      {vault.status === "PAUSED" && (
+                        <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full border border-yellow-500/30">
+                          Paused
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
+                    <div className="flex items-center gap-4 text-xs text-slate-500">
+                      <span className="flex items-center gap-1">
+                        <Mail className="w-3 h-3" />
+                        {meta.heirEmail}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Every {vault.heartbeatIntervalDays} days
+                      </span>
+                    </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => handleDecrypt(vault)}
-                    disabled={decryptingId === vault.id}
-                    className="btn-outline flex items-center gap-1.5 text-xs"
-                    title={decryptedItems[vault.id] ? "Hide secret" : "Decrypt & view"}
-                  >
-                    {decryptingId === vault.id ? (
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    ) : decryptedItems[vault.id] ? (
-                      <EyeOff className="w-3.5 h-3.5" />
-                    ) : (
-                      <Eye className="w-3.5 h-3.5" />
+                    {/* Decrypted content */}
+                    {decryptedItems[vault.id] && (
+                      <div className="mt-3 p-3 bg-navy-950 border border-gold/20 rounded-lg">
+                        <p className="text-xs text-gold mb-1 font-medium">🔓 Decrypted Secret:</p>
+                        <pre className="text-sm text-slate-200 font-mono whitespace-pre-wrap break-all">
+                          {decryptedItems[vault.id]}
+                        </pre>
+                      </div>
                     )}
-                    {decryptedItems[vault.id] ? "Hide" : "Decrypt"}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(vault.id)}
-                    className="btn-danger flex items-center gap-1.5 text-xs"
-                    title="Delete vault"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => handleDecrypt(vault)}
+                      disabled={decryptingId === vault.id}
+                      className="btn-outline flex items-center gap-1.5 text-xs"
+                      title={decryptedItems[vault.id] ? "Hide secret" : "Decrypt & view"}
+                    >
+                      {decryptingId === vault.id ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : decryptedItems[vault.id] ? (
+                        <EyeOff className="w-3.5 h-3.5" />
+                      ) : (
+                        <Eye className="w-3.5 h-3.5" />
+                      )}
+                      {decryptedItems[vault.id] ? "Hide" : "Decrypt"}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(vault.id)}
+                      className="btn-danger flex items-center gap-1.5 text-xs"
+                      title="Delete vault"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

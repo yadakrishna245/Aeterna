@@ -9,8 +9,6 @@ const TABLE_NAME = process.env.VAULT_TABLE_NAME || "";
 interface VaultRecord {
   id: string;
   owner: string;
-  assetName: string;
-  heirEmail: string;
   heartbeatIntervalDays: number;
   lastHeartbeat: string;
   status: string;
@@ -23,6 +21,9 @@ interface VaultRecord {
  * Scans all ACTIVE vaults and checks if the owner has missed their heartbeat.
  * If days since last heartbeat > heartbeatIntervalDays, the vault status is
  * changed to TRIGGERED and an alert is logged (email integration as next step).
+ *
+ * NOTE: assetName and heirEmail are encrypted client-side and cannot be read
+ * by the Lambda. Only the vault ID and operational fields are used here.
  */
 export const handler: Handler = async () => {
   console.log("🫀 Heartbeat Monitor: Starting daily check...");
@@ -60,8 +61,6 @@ export const handler: Handler = async () => {
       const vault: VaultRecord = {
         id: item.id?.S || "",
         owner: item.owner?.S || "",
-        assetName: item.assetName?.S || "",
-        heirEmail: item.heirEmail?.S || "",
         heartbeatIntervalDays: parseInt(item.heartbeatIntervalDays?.N || "30", 10),
         lastHeartbeat: item.lastHeartbeat?.S || "",
         status: item.status?.S || "ACTIVE",
@@ -73,7 +72,7 @@ export const handler: Handler = async () => {
       const daysSinceHeartbeat = (now - lastBeatDate) / (1000 * 60 * 60 * 24);
 
       console.log(
-        `  🔍 Vault "${vault.assetName}" (${vault.id}): ` +
+        `  🔍 Vault ${vault.id}: ` +
         `${daysSinceHeartbeat.toFixed(1)} days since last heartbeat ` +
         `(threshold: ${vault.heartbeatIntervalDays} days)`
       );
@@ -81,7 +80,7 @@ export const handler: Handler = async () => {
       // Check if heartbeat has expired
       if (daysSinceHeartbeat > vault.heartbeatIntervalDays) {
         console.log(
-          `  ⚠️  TRIGGERING vault "${vault.assetName}" — ` +
+          `  ⚠️  TRIGGERING vault ${vault.id} — ` +
           `owner missed heartbeat by ${(daysSinceHeartbeat - vault.heartbeatIntervalDays).toFixed(1)} days`
         );
 
@@ -103,10 +102,9 @@ export const handler: Handler = async () => {
         );
 
         // TODO: Integrate with Amazon SES to send notification email
-        // For now, log the trigger event
+        // Note: heirEmail is encrypted client-side — decryption key needed for email delivery
         console.log(
-          `  📧 TRIGGER ALERT: Send email to ${vault.heirEmail} ` +
-          `for asset "${vault.assetName}" owned by ${vault.owner}`
+          `  📧 TRIGGER ALERT: Vault ${vault.id} owned by ${vault.owner} has been triggered.`
         );
 
         triggeredCount++;

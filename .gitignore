@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# AWS Amplify — contains real resource IDs, CDK artifacts, and infrastructure secrets
+amplify_outputs.json
+.amplify/
