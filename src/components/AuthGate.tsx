@@ -6,29 +6,107 @@ import { Dashboard } from "./Dashboard";
 import { LandingPage } from "./LandingPage";
 import { PasswordStrength } from "./PasswordStrength";
 import { checkIsPanicPassword } from "../utils/panicMode";
+import { TermsOfService } from "./TermsOfService";
+import { PrivacyPolicy } from "./PrivacyPolicy";
 
 export function AuthGate() {
   const [showAuth, setShowAuth] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+
+  if (showTerms) {
+    return <TermsOfService onBack={() => setShowTerms(false)} />;
+  }
+
+  if (showPrivacy) {
+    return <PrivacyPolicy onBack={() => setShowPrivacy(false)} />;
+  }
 
   if (!showAuth) {
-    return <LandingPage onGetStarted={() => setShowAuth(true)} />;
+    return (
+      <LandingPage
+        onGetStarted={() => setShowAuth(true)}
+        onShowTerms={() => setShowTerms(true)}
+        onShowPrivacy={() => setShowPrivacy(true)}
+      />
+    );
   }
 
   return (
-    <Authenticator>
-      {({ signOut, user }) => (
-        <MasterPasswordGate signOut={signOut!} user={user!} />
-      )}
-    </Authenticator>
+    <div>
+      {/* Terms Acceptance Banner - Always visible during auth */}
+      <div className="bg-navy-900 border-b border-navy-800 px-4 py-3">
+        <div className="max-w-md mx-auto text-center">
+          <p className="text-xs text-slate-400">
+            By creating an account, you agree to our{" "}
+            <button
+              onClick={() => setShowTerms(true)}
+              className="text-gold hover:text-gold/80 underline transition-colors"
+            >
+              Terms of Service
+            </button>{" "}
+            and{" "}
+            <button
+              onClick={() => setShowPrivacy(true)}
+              className="text-gold hover:text-gold/80 underline transition-colors"
+            >
+              Privacy Policy
+            </button>
+          </p>
+        </div>
+      </div>
+      <Authenticator
+        components={{
+          SignUp: {
+            Footer() {
+              return (
+                <div className="px-4 pb-4">
+                  <div className="bg-navy-800 border border-navy-700 rounded-lg p-3 mt-2">
+                    <p className="text-xs text-slate-300 text-center">
+                      ✅ By signing up, I confirm that I have read and accept the{" "}
+                      <button
+                        type="button"
+                        onClick={() => setShowTerms(true)}
+                        className="text-gold hover:text-gold/80 underline font-medium"
+                      >
+                        Terms of Service
+                      </button>{" "}
+                      and{" "}
+                      <button
+                        type="button"
+                        onClick={() => setShowPrivacy(true)}
+                        className="text-gold hover:text-gold/80 underline font-medium"
+                      >
+                        Privacy Policy
+                      </button>
+                      , including all liability limitations and dispute resolution clauses.
+                    </p>
+                  </div>
+                  <p className="text-[10px] text-slate-500 text-center mt-2">
+                    Your acceptance is recorded with timestamp for legal purposes.
+                  </p>
+                </div>
+              );
+            },
+          },
+        }}
+      >
+        {({ signOut, user }) => (
+          <MasterPasswordGate signOut={signOut!} user={user!} onShowTerms={() => setShowTerms(true)} onShowPrivacy={() => setShowPrivacy(true)} />
+        )}
+      </Authenticator>
+    </div>
   );
 }
 
 interface MasterPasswordGateProps {
   signOut: () => void;
   user: { username: string; userId: string };
+  onShowTerms: () => void;
+  onShowPrivacy: () => void;
 }
 
-function MasterPasswordGate({ signOut, user }: MasterPasswordGateProps) {
+function MasterPasswordGate({ signOut, user, onShowTerms, onShowPrivacy }: MasterPasswordGateProps) {
   const [masterPassword, setMasterPassword] = useState<string | null>(null);
   const [passwordInput, setPasswordInput] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -148,6 +226,15 @@ function MasterPasswordGate({ signOut, user }: MasterPasswordGateProps) {
         <p className="text-center text-xs text-slate-600 mt-6">
           🔒 End-to-End Encrypted — Your data is encrypted before it leaves this device.
         </p>
+        <div className="text-center mt-3">
+          <button onClick={onShowTerms} className="text-xs text-slate-500 hover:text-gold transition-colors mx-2 underline">
+            Terms of Service
+          </button>
+          <span className="text-slate-700">|</span>
+          <button onClick={onShowPrivacy} className="text-xs text-slate-500 hover:text-gold transition-colors mx-2 underline">
+            Privacy Policy
+          </button>
+        </div>
       </div>
     </div>
   );

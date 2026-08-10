@@ -23,9 +23,11 @@ import {
 
 interface LandingPageProps {
   onGetStarted: () => void;
+  onShowTerms?: () => void;
+  onShowPrivacy?: () => void;
 }
 
-export function LandingPage({ onGetStarted }: LandingPageProps) {
+export function LandingPage({ onGetStarted, onShowTerms, onShowPrivacy }: LandingPageProps) {
   return (
     <div className="min-h-screen bg-navy-950 text-slate-200 font-sans overflow-x-hidden">
       {/* Navigation */}
@@ -417,9 +419,21 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
             <span className="font-semibold text-slate-100">Aeterna</span>
             <span className="text-slate-500 text-sm ml-2">Your digital legacy, forever protected.</span>
           </div>
-          <p className="text-sm text-slate-500">
-            © 2026 Aeterna. All rights reserved.
-          </p>
+          <div className="flex items-center gap-4">
+            {onShowTerms && (
+              <button onClick={onShowTerms} className="text-sm text-slate-400 hover:text-gold transition-colors underline">
+                Terms of Service
+              </button>
+            )}
+            {onShowPrivacy && (
+              <button onClick={onShowPrivacy} className="text-sm text-slate-400 hover:text-gold transition-colors underline">
+                Privacy Policy
+              </button>
+            )}
+            <p className="text-sm text-slate-500">
+              © 2026 Aeterna. All rights reserved.
+            </p>
+          </div>
         </div>
       </footer>
     </div>
