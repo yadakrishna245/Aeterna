@@ -3,6 +3,7 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "../../amplify/data/resource";
 import { encryptData, decryptData } from "../utils/crypto";
 import { useToast } from "./Toast";
+import { getCurrentPlan, getPlanLimits } from "../utils/subscription";
 import {
   Users,
   UserPlus,
@@ -147,7 +148,21 @@ export function BeneficiaryManager({ masterPassword }: BeneficiaryManagerProps) 
     fetchBeneficiaries();
   }, [fetchBeneficiaries]);
 
+  // Plan-based beneficiary limits
+  const currentPlan = getCurrentPlan();
+  const planLimits = getPlanLimits(currentPlan);
+  const maxBeneficiaries = planLimits.maxBeneficiaries;
+  const canAddMore = beneficiaries.length < maxBeneficiaries;
+
   const handleOpenAdd = () => {
+    if (!canAddMore) {
+      toast.warning(
+        currentPlan === "free"
+          ? "Free plan allows 1 beneficiary. Upgrade to Pro (₹499/yr) for up to 5."
+          : "Pro plan allows 5 beneficiaries. Upgrade to Family (₹999/yr) for unlimited."
+      );
+      return;
+    }
     setEditingId(null);
     setFormData(emptyForm);
     setError("");
@@ -264,15 +279,15 @@ export function BeneficiaryManager({ masterPassword }: BeneficiaryManagerProps) 
           <Users className="w-5 h-5 text-gold" />
           <h2 className="text-lg font-semibold text-slate-100">Beneficiaries</h2>
           <span className="text-xs bg-navy-700 text-slate-400 px-2 py-0.5 rounded-full">
-            {beneficiaries.length}
+            {beneficiaries.length}/{maxBeneficiaries === Infinity ? "∞" : maxBeneficiaries}
           </span>
         </div>
         <button
           onClick={handleOpenAdd}
-          className="btn-gold flex items-center gap-2 text-sm"
+          className={`flex items-center gap-2 text-sm ${canAddMore ? "btn-gold" : "btn-outline border-gold/30 text-gold/70 cursor-pointer"}`}
         >
           <UserPlus className="w-4 h-4" />
-          Add Beneficiary
+          {canAddMore ? "Add Beneficiary" : "Upgrade to Add More"}
         </button>
       </div>
 
