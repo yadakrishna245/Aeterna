@@ -235,8 +235,14 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
             vaults will be released to designated heirs.
           </p>
           <button
-            onClick={handleCheckIn}
-            disabled={checkingIn || vaults.filter((v) => v.status === "ACTIVE").length === 0}
+            onClick={() => {
+              if (vaults.filter((v) => v.status === "ACTIVE").length === 0) {
+                alert("Add at least one vault first to activate the Dead Man's Switch.");
+                return;
+              }
+              handleCheckIn();
+            }}
+            disabled={checkingIn}
             className="btn-gold text-lg px-10 py-4 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {checkingIn ? (
