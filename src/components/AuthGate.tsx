@@ -3,8 +3,15 @@ import { Authenticator } from "@aws-amplify/ui-react";
 import "@aws-amplify/ui-react/styles.css";
 import { Shield, Lock, Eye, EyeOff } from "lucide-react";
 import { Dashboard } from "./Dashboard";
+import { LandingPage } from "./LandingPage";
 
 export function AuthGate() {
+  const [showAuth, setShowAuth] = useState(false);
+
+  if (!showAuth) {
+    return <LandingPage onGetStarted={() => setShowAuth(true)} />;
+  }
+
   return (
     <Authenticator>
       {({ signOut, user }) => (

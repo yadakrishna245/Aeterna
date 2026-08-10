@@ -145,3 +145,78 @@ export async function decryptData(
     );
   }
 }
+
+/**
+ * Encrypted binary data result (for files, video, audio blobs)
+ */
+export interface EncryptedBinaryData {
+  ciphertext: ArrayBuffer; // Raw encrypted bytes
+  iv: string; // Base64-encoded initialization vector
+  salt: string; // Base64-encoded salt used for key derivation
+}
+
+/**
+ * Encrypt binary data (ArrayBuffer) using AES-GCM with a password-derived key.
+ * Used for files, video recordings, and audio blobs.
+ *
+ * @param data - The binary data to encrypt
+ * @param masterPassword - The user's master password
+ * @returns Object containing encrypted ArrayBuffer, and Base64-encoded IV and salt
+ */
+export async function encryptBinary(
+  data: ArrayBuffer,
+  masterPassword: string
+): Promise<EncryptedBinaryData> {
+  const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
+  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+
+  const key = await deriveKey(masterPassword, salt);
+
+  const ciphertext = await crypto.subtle.encrypt(
+    {
+      name: "AES-GCM",
+      iv: iv,
+    },
+    key,
+    data
+  );
+
+  return {
+    ciphertext,
+    iv: bufferToBase64(iv.buffer),
+    salt: bufferToBase64(salt.buffer),
+  };
+}
+
+/**
+ * Decrypt binary data (ArrayBuffer) using AES-GCM with a password-derived key.
+ *
+ * @param encryptedData - Object containing ciphertext ArrayBuffer, IV, and salt
+ * @param masterPassword - The user's master password
+ * @returns Decrypted ArrayBuffer
+ * @throws Error if password is wrong or data is corrupted
+ */
+export async function decryptBinary(
+  encryptedData: EncryptedBinaryData,
+  masterPassword: string
+): Promise<ArrayBuffer> {
+  const salt = new Uint8Array(base64ToBuffer(encryptedData.salt));
+  const iv = new Uint8Array(base64ToBuffer(encryptedData.iv));
+
+  const key = await deriveKey(masterPassword, salt);
+
+  try {
+    return await crypto.subtle.decrypt(
+      {
+        name: "AES-GCM",
+        iv: iv,
+      },
+      key,
+      encryptedData.ciphertext
+    );
+  } catch {
+    throw new Error(
+      "Decryption failed. Wrong master password or corrupted data."
+    );
+  }
+}

@@ -16,8 +16,11 @@ import {
   EyeOff,
   RefreshCw,
   AlertTriangle,
+  Users,
+  Calendar,
 } from "lucide-react";
 import { AddAssetModal } from "./AddAssetModal";
+import { BeneficiaryManager } from "./BeneficiaryManager";
 
 const client = generateClient<Schema>();
 
@@ -39,6 +42,8 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
   const [vaults, setVaults] = useState<VaultItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showBeneficiaries, setShowBeneficiaries] = useState(false);
+  const [beneficiaryCount, setBeneficiaryCount] = useState(0);
   const [decryptedItems, setDecryptedItems] = useState<Record<string, string>>({});
   const [decryptedMeta, setDecryptedMeta] = useState<Record<string, DecryptedVaultMeta>>({});
   const [decryptingId, setDecryptingId] = useState<string | null>(null);
@@ -93,9 +98,21 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
     }
   }, [decryptVaultMeta]);
 
+  // Fetch beneficiary count
+  const fetchBeneficiaryCount = useCallback(async () => {
+    try {
+      const { data } = await (client.models as any).Beneficiary.list();
+      setBeneficiaryCount(data?.length || 0);
+    } catch {
+      // Model may not exist yet
+      setBeneficiaryCount(0);
+    }
+  }, []);
+
   useEffect(() => {
     fetchVaults();
-  }, [fetchVaults]);
+    fetchBeneficiaryCount();
+  }, [fetchVaults, fetchBeneficiaryCount]);
 
   // Calculate days until next heartbeat is required
   const getNextHeartbeatDays = () => {
@@ -190,6 +207,16 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
     }
   };
 
+  // Helper: get trigger type and grace period from vault (extended fields)
+  const getVaultExtras = (vault: VaultItem) => {
+    const extras = vault as any;
+    return {
+      triggerType: extras.triggerType || "heartbeat",
+      scheduledDate: extras.scheduledDate || null,
+      gracePeriodDays: extras.gracePeriodDays || 7,
+    };
+  };
+
   const daysLeft = getNextHeartbeatDays();
   const isUrgent = daysLeft !== null && daysLeft <= 3;
 
@@ -228,7 +255,7 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-6 animate-fade-in">
         {/* Status Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* System Status */}
           <div className="card flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
@@ -273,6 +300,17 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
               <p className="text-lg font-semibold text-slate-100">{vaults.length}</p>
             </div>
           </div>
+
+          {/* Beneficiary Count */}
+          <div className="card flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+              <Users className="w-6 h-6 text-purple-400" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-400">Beneficiaries</p>
+              <p className="text-lg font-semibold text-slate-100">{beneficiaryCount}</p>
+            </div>
+          </div>
         </div>
 
         {/* Check-In Button */}
@@ -308,6 +346,36 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
           </button>
         </div>
 
+        {/* Beneficiaries Section */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-gold" />
+              <h2 className="text-lg font-semibold text-slate-100">Beneficiaries</h2>
+              <span className="text-xs bg-navy-700 text-slate-400 px-2 py-0.5 rounded-full">
+                {beneficiaryCount}
+              </span>
+            </div>
+            <button
+              onClick={() => setShowBeneficiaries(!showBeneficiaries)}
+              className="btn-gold flex items-center gap-2 text-sm"
+            >
+              <Users className="w-4 h-4" />
+              {showBeneficiaries ? "Hide" : "Manage Beneficiaries"}
+            </button>
+          </div>
+
+          {!showBeneficiaries && (
+            <p className="text-sm text-slate-400">
+              Manage the people who will receive your encrypted assets. All personal data is encrypted client-side.
+            </p>
+          )}
+
+          {showBeneficiaries && (
+            <BeneficiaryManager masterPassword={masterPassword} />
+          )}
+        </div>
+
         {/* Vault List */}
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-100">Your Vaults</h2>
@@ -340,6 +408,7 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
                 assetName: "[Encrypted]",
                 heirEmail: "[Encrypted]",
               };
+              const extras = getVaultExtras(vault);
 
               return (
                 <div
@@ -348,7 +417,7 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
                 >
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h3 className="font-semibold text-slate-100 truncate">
                         {meta.assetName}
                       </h3>
@@ -363,8 +432,26 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
                           Paused
                         </span>
                       )}
+                      {/* Trigger Type Badge */}
+                      {extras.triggerType === "heartbeat" ? (
+                        <span className="text-[10px] bg-gold/10 text-gold px-1.5 py-0.5 rounded border border-gold/20 flex items-center gap-0.5">
+                          <HeartPulse className="w-2.5 h-2.5" />
+                          Heartbeat
+                        </span>
+                      ) : (
+                        <span className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/20 flex items-center gap-0.5">
+                          <Calendar className="w-2.5 h-2.5" />
+                          Scheduled: {extras.scheduledDate
+                            ? new Date(extras.scheduledDate).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })
+                            : "TBD"}
+                        </span>
+                      )}
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-slate-500">
+                    <div className="flex items-center gap-4 text-xs text-slate-500 flex-wrap">
                       <span className="flex items-center gap-1">
                         <Mail className="w-3 h-3" />
                         {meta.heirEmail}
@@ -372,6 +459,10 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         Every {vault.heartbeatIntervalDays} days
+                      </span>
+                      <span className="flex items-center gap-1 text-gold/70">
+                        <Shield className="w-3 h-3" />
+                        Grace: {extras.gracePeriodDays} days
                       </span>
                     </div>
 
