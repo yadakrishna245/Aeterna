@@ -199,4 +199,82 @@ A comprehensive, categorized document storage system. Every document a person ne
 
 ---
 
+## 📝 Session Log — August 10, 2026 (Afternoon)
+
+### Key Decisions Made
+
+1. **Document Vault (Life Locker)** — Built with 10 categories, free tier limit (2 docs), upgrade prompts
+2. **Terms of Service (19 sections)** — Bulletproof legal protection:
+   - Max liability capped at ₹499
+   - Mandatory arbitration in Hyderabad
+   - Class action waiver
+   - 1-year limitation period
+   - Indemnification (user pays our legal fees if they lose)
+   - Force majeure covers AWS outages
+   - "NOT a legal will" disclaimer
+3. **Privacy Policy (14 sections)** — DPDP Act 2023 compliant
+4. **Mandatory Terms acceptance at signup** — Timestamp recorded
+5. **Beneficiary limits enforced** — Free:1, Pro:5, Family:Unlimited (shown in UI)
+6. **Admin fallback clause (§10A in ToS)** — If no beneficiary + account unclaimed for 45 days, data transfers to admin
+7. **"No Beneficiaries" warning banner** — Red alert on dashboard when user has vaults but 0 beneficiaries
+8. **One-click migration scripts** — `data-migration/full-migration.ps1` and `.sh`
+
+### Critical Questions Addressed
+
+| Question | Answer |
+|----------|--------|
+| How does family know user died? | Dead Man's Switch auto-emails beneficiaries after grace period |
+| How do beneficiaries decrypt without master password? | Shamir's Secret Sharing — 2-of-3 fragments reconstruct the key |
+| What if no beneficiary added? | Warning banners + after 45 days unclaimed → admin gets the data |
+| Who is responsible for data breaches? | ToS §8: data is encrypted ciphertext. Even in breach, plaintext never exposed |
+| Can anyone sue the app owner? | ToS limits liability to ₹499, mandates Hyderabad arbitration, 1-year claim window |
+| What if AWS credits expire? | One-click migration script transfers everything (DynamoDB + Cognito + S3 + Route53) to new account with zero data loss |
+| Can data be lost during migration? | Script verifies exported count == imported count for every service |
+
+### Files Created/Modified This Session
+
+| File | Action |
+|------|--------|
+| `src/components/DocumentVault.tsx` | Created — 10-category encrypted document locker |
+| `src/components/TermsOfService.tsx` | Created — 19-section legal protection |
+| `src/components/PrivacyPolicy.tsx` | Created — DPDP Act 2023 compliant |
+| `src/components/AuthGate.tsx` | Modified — mandatory Terms acceptance at signup |
+| `src/components/LandingPage.tsx` | Modified — Terms/Privacy links in footer |
+| `src/components/Dashboard.tsx` | Modified — Documents tab + no-beneficiary warning |
+| `src/components/BeneficiaryManager.tsx` | Modified — plan limits enforced + key recovery reminder |
+| `LEGAL_PROTECTION.md` | Created — internal owner liability guide |
+| `CHECKPOINT.md` | Updated — all features documented |
+| `README.md` | Updated — Document Vault + diagrams |
+| `data-migration/full-migration.ps1` | Created — one-click AWS A→B migration (Windows) |
+| `data-migration/full-migration.sh` | Created — one-click AWS A→B migration (Linux/Mac) |
+| `data-migration/README.md` | Created — migration documentation |
+
+### Deployment History (This Session)
+
+| Commit | Message |
+|--------|---------|
+| `3d64ea4` | feat: Document Vault (Life Locker) - 10 categories |
+| `95a2536` | feat: Document Vault with free tier limit (2 docs) |
+| `717de0d` | docs: add Document Vault to README |
+| `6a491e2` | docs: update README diagrams with Document Vault tab |
+| `f124c7c` | feat: Terms of Service + Privacy Policy |
+| `d8ed477` | docs: add Legal Protection guide |
+| `55e65f4` | feat: enforce beneficiary limits per plan |
+| `b1daaba` | feat: beneficiary warnings, admin fallback in ToS |
+| `2902cda` | docs: update CHECKPOINT |
+| `a4c3628` | feat: data-migration folder |
+| `e91a91a` | feat: rewrite migration scripts - zero data loss, validated |
+
+### Pending Items
+
+- [ ] Razorpay payment gateway (user needs to register and get API keys)
+- [ ] Custom domain purchase (aeterna.in / aeterna.app from GoDaddy)
+- [ ] Register LLP/Pvt Ltd company (personal liability shield)
+- [ ] Lawyer review of Terms of Service (one-time ₹5-10K)
+- [ ] Cyber liability insurance (₹3-5K/year)
+- [ ] SES domain verification for real email delivery
+- [ ] PDF pitch document for investor/user presentations
+
+---
+
 **Built with** ❤️ **by Krishna** | 30+ Features | AWS Serverless | First-in-Market Digital Estate Planner
