@@ -121,6 +121,34 @@
 ---
 
 ## 🚀 Next Steps
+
+### 📂 Document Vault (Life Locker) — IN PROGRESS
+A comprehensive, categorized document storage system. Every document a person needs in their lifetime, encrypted and organized.
+
+| Category | What People Store |
+|----------|-------------------|
+| 🏦 Financial | Bank passbooks, FD receipts, PPF, mutual funds, stock demat, LIC policies, bonds, chit fund docs |
+| 🏠 Property | Land registry, sale deeds, house tax receipts, property tax, encumbrance certificates, building plans |
+| 🪪 Identity | Aadhaar, PAN, passport, voter ID, driving license, birth/death certificates, caste certificate |
+| ⛽ Utilities | Gas connection (HP/Bharat/Indane), electricity bills, water connection, telephone/broadband, DTH |
+| 🏧 Banking & Lockers | Bank locker details (branch, locker number, nominee), credit/debit card info, net banking details |
+| 💊 Medical | Health insurance, prescriptions, blood reports, vaccination records, hospital discharge summaries |
+| ⚖️ Legal | Will, power of attorney, rental agreements, court orders, NOCs, affidavits |
+| 🎓 Education | Degrees, marksheets, certificates, experience letters |
+| 💻 Digital Accounts | Email recovery, social media, subscriptions, cloud storage |
+| 📦 Personal | Family photos, marriage certificate, divorce papers, adoption papers |
+
+**Features:**
+- Upload any file (PDF, image, doc) — AES-256-GCM encrypted at rest
+- Rename documents after upload
+- Preview (PDF/image viewer in-browser)
+- Add notes to each document
+- Category-wise organization with file counts
+- Sort by date added
+- Search across all documents
+- All encrypted client-side before storage
+
+### Other Next Steps
 - [ ] Custom domain (aeterna.in / aeterna.app)
 - [ ] Stripe backend webhook (real payments)
 - [ ] WhatsApp Business API for notifications

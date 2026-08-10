@@ -32,6 +32,7 @@ import {
   CreditCard,
   Bell,
   X,
+  FolderOpen,
 } from "lucide-react";
 import { AddAssetModal } from "./AddAssetModal";
 import { BeneficiaryManager } from "./BeneficiaryManager";
@@ -50,6 +51,7 @@ import { EmergencyCard } from "./EmergencyCard";
 import { TrustedContactSetup } from "./TrustedContactSetup";
 import { UnclaimedPolicy } from "./UnclaimedPolicy";
 import { PricingPage } from "./PricingPage";
+import { DocumentVault } from './DocumentVault';
 import { getCurrentPlan, canUseFeature } from "../utils/subscription";
 
 const client = generateClient<Schema>();
@@ -79,7 +81,7 @@ export function Dashboard({ user, masterPassword, signOut, onLock, isPanicMode }
   const [decryptedMeta, setDecryptedMeta] = useState<Record<string, DecryptedVaultMeta>>({});
   const [decryptingId, setDecryptingId] = useState<string | null>(null);
   const [checkingIn, setCheckingIn] = useState(false);
-  const [activeTab, setActiveTab] = useState<"vaults" | "activity" | "2fa" | "capsules" | "guide" | "devices" | "security" | "tools" | "subscription">("vaults");
+  const [activeTab, setActiveTab] = useState<"vaults" | "activity" | "documents" | "2fa" | "capsules" | "guide" | "devices" | "security" | "tools" | "subscription">("vaults");
   const [exportingBackup, setExportingBackup] = useState(false);
   const [showHeirPreview, setShowHeirPreview] = useState(false);
   const [welcomeDismissed, setWelcomeDismissed] = useState(() => {
@@ -624,6 +626,17 @@ export function Dashboard({ user, masterPassword, signOut, onLock, isPanicMode }
             Activity
           </button>
           <button
+            onClick={() => setActiveTab("documents")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              activeTab === "documents"
+                ? "bg-navy-700 text-slate-100 shadow-sm"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <FolderOpen className="w-4 h-4" />
+            Documents
+          </button>
+          <button
             onClick={() => setActiveTab("2fa")}
             className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
               activeTab === "2fa"
@@ -712,6 +725,10 @@ export function Dashboard({ user, masterPassword, signOut, onLock, isPanicMode }
               <h2 className="text-lg font-semibold text-slate-100">Activity History</h2>
             </div>
             <ActivityLog />
+          </div>
+        ) : activeTab === "documents" ? (
+          <div className="card">
+            <DocumentVault masterPassword={masterPassword} />
           </div>
         ) : activeTab === "2fa" ? (
           !canUseFeature("2fa_vault") ? (
