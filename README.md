@@ -133,6 +133,18 @@ flowchart TD
 - 🔑 2FA Recovery Vault (TOTP + backup codes)
 - 📹 Video/Voice Messages (encrypted)
 - 📁 File Upload (drag-drop, encrypted)
+- 📂 **Document Vault (Life Locker)** — 10 categories, upload/rename/preview/notes
+  - 🏦 Financial (bank, FD, PPF, mutual funds, bonds, LIC)
+  - 🏠 Property (land registry, sale deeds, building plans)
+  - 🪪 Identity (Aadhaar, PAN, passport, voter ID, DL)
+  - ⛽ Utilities (gas, electricity, water, telephone, DTH)
+  - 🏧 Banking & Lockers (locker details, cards, net banking)
+  - 💊 Medical (insurance, prescriptions, reports)
+  - ⚖️ Legal (will, POA, agreements, court orders)
+  - 🎓 Education (degrees, marksheets, certificates)
+  - 💻 Digital (email recovery, social media, subscriptions)
+  - 📦 Personal (marriage cert, family photos, adoption)
+  - Free tier: 2 documents | Pro/Family: Unlimited
 - 📬 Time Capsule Messages
 - 🧳 Panic Mode / Duress Pin
 - 🔑 Shamir's Secret Sharing (key recovery)
