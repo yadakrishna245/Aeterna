@@ -241,7 +241,7 @@ export function BeneficiaryManager({ masterPassword }: BeneficiaryManagerProps) 
         toast.success("Beneficiary updated successfully");
       } else {
         await (client.models as any).Beneficiary.create(payload);
-        toast.success("Beneficiary added successfully");
+        toast.success("Beneficiary added! Set up Key Recovery (Security tab) so they can unlock your vaults.");
       }
 
       handleClosePanel();

@@ -220,6 +220,46 @@ export function TermsOfService({ onBack }: TermsOfServiceProps) {
             </section>
 
             <section>
+              <h2 className="text-lg font-semibold text-slate-100 border-b border-navy-700 pb-2">10A. UNCLAIMED ACCOUNTS AND DATA TRANSFER</h2>
+              <p>
+                In the event that a User's account triggers the Dead Man's Switch and <strong>no beneficiary has been designated</strong>, 
+                or designated beneficiaries fail to claim the account within the specified grace period (default: 45 days), the following applies:
+              </p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>
+                  <strong className="text-gold">Account Transfer to Platform Administrator:</strong> The account, including all associated 
+                  data (encrypted vaults, documents, user details, email address, and account metadata) shall be transferred to the 
+                  Platform Administrator (Aeterna Digital Services) for handling in accordance with the User's pre-selected Unclaimed Estate Policy.
+                </li>
+                <li>
+                  <strong className="text-gold">Master Password Access:</strong> If the User has set up Shamir's Secret Sharing key recovery 
+                  and designated the Platform as a fragment holder, the Platform Administrator may reconstruct the Master Password 
+                  solely for the purpose of executing the User's chosen Unclaimed Estate Policy (deletion, charity donation, or community fund).
+                </li>
+                <li>
+                  <strong className="text-gold">Default Policy:</strong> If no Unclaimed Estate Policy has been selected by the User, 
+                  the default action shall be: (a) retain the account data for 90 days for potential late claims, 
+                  (b) permanently delete all data after 90 days.
+                </li>
+                <li>
+                  <strong className="text-gold">Administrator Rights:</strong> The Platform Administrator reserves the right to access 
+                  unclaimed account metadata (email, creation date, vault count, last activity) for administrative purposes including 
+                  account cleanup, compliance reporting, and platform maintenance.
+                </li>
+                <li>
+                  <strong className="text-gold">User Acknowledgment:</strong> By using this Service, you acknowledge and consent that 
+                  if your account remains unclaimed after the Dead Man's Switch triggers and the grace period expires, 
+                  your account data (including encrypted data) may be accessed and handled by the Platform Administrator 
+                  as described above. This consent is irrevocable once the unclaimed period has elapsed.
+                </li>
+              </ul>
+              <p className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-amber-300 mt-3">
+                <strong>To prevent this:</strong> Add at least one beneficiary to your account. Accounts with active, reachable 
+                beneficiaries will never be transferred to the Platform Administrator.
+              </p>
+            </section>
+
+            <section>
               <h2 className="text-lg font-semibold text-slate-100 border-b border-navy-700 pb-2">11. INTELLECTUAL PROPERTY</h2>
               <p>
                 All rights, title, and interest in the Service (including but not limited to source code, design, branding, logos, 

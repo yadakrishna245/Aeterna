@@ -36,6 +36,11 @@ interface VaultRecord {
  *   - Reminder 3: 1 day before trigger
  */
 export const handler: Handler = async () => {
+  // ADMIN FALLBACK: If a vault triggers and has 0 beneficiaries,
+  // after 45 days unclaimed, notify admin at yadakrishna245@gmail.com
+  // with user email, vault count, and account creation date.
+  // Admin then handles per Unclaimed Estate Policy.
+
   console.log("🫀 Heartbeat Monitor: Starting emergency escalation check...");
   console.log(`📋 Table: ${TABLE_NAME}`);
 

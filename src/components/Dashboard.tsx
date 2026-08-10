@@ -538,6 +538,27 @@ export function Dashboard({ user, masterPassword, signOut, onLock, isPanicMode }
           </div>
         )}
 
+        {/* Warning Banner: Vaults exist but no beneficiaries */}
+        {!loading && vaults.length > 0 && beneficiaryCount === 0 && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-center gap-4 animate-fade-in">
+            <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-red-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-300">⚠️ No Beneficiaries Added</p>
+              <p className="text-xs text-red-400/80 mt-0.5">
+                You have {vaults.length} vault(s) but no beneficiary. If something happens to you, nobody will receive your data. Add a beneficiary now.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowBeneficiaries(true)}
+              className="btn-outline border-red-500/30 text-red-300 hover:bg-red-500/10 text-xs px-3 py-1.5 shrink-0"
+            >
+              Add Now
+            </button>
+          </div>
+        )}
+
         {/* Check-In Button */}
         <div className="card text-center py-8" data-checkin>
           <HeartPulse className="w-10 h-10 text-gold mx-auto mb-3 animate-pulse-slow" />
