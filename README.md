@@ -172,7 +172,7 @@ flowchart TD
 | ⌚ Smartwatch Passive Check-In | BETA | Native mobile app for Bluetooth |
 | 🔗 Social Proof of Life | BETA | OAuth integration with platforms |
 | 📧 Real Email Delivery | Pending | SES domain verification |
-| 💳 Real Stripe Payments | Pending | Stripe API keys |
+| 💳 Razorpay Payments | Pending | Register on Razorpay + API keys |
 | 🌐 Custom Domain | Pending | Domain registration |
 
 ## 🏗️ Architecture
@@ -197,6 +197,34 @@ graph LR
     A -->|Encrypted Data| F
     G -->|Daily Scan| F
     G -->|Trigger Alerts| H
+```
+
+## 📁 Project Structure
+
+```
+Aeterna/
+├── amplify/              # AWS Amplify Gen 2 backend (Cognito, DynamoDB, Lambda)
+├── data-migration/       # One-click AWS account migration scripts
+│   ├── full-migration.ps1   # Windows (PowerShell) — zero data loss
+│   ├── full-migration.sh    # Linux/Mac (Bash)
+│   └── README.md            # Migration guide
+├── docs/                 # Project documentation
+│   ├── CHECKPOINT.md        # Full project status & session logs
+│   ├── CONTRIBUTING.md      # Contribution guide
+│   ├── LAUNCH.md            # Launch checklist
+│   └── LEGAL_PROTECTION.md  # Owner liability guide
+├── public/               # Static assets (favicon, OG image)
+├── src/                  # Application source code
+│   ├── assets/              # Images (hero.png, SVGs)
+│   ├── components/          # 30 React components
+│   ├── data/                # Service guides data
+│   ├── hooks/               # Custom hooks (useAutoLock)
+│   └── utils/               # Crypto, subscription, exports
+├── index.html            # Vite entry (SEO meta + OG tags)
+├── package.json          # Dependencies & scripts
+├── vite.config.ts        # Build configuration
+├── tailwind.config.js    # Tailwind CSS config
+└── README.md             # This file
 ```
 
 ## 🚀 Quick Start

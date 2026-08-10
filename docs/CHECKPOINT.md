@@ -20,7 +20,37 @@
 | Storage | Amazon S3 |
 | Email | Amazon SES |
 | Encryption | Web Crypto API (AES-256-GCM + PBKDF2) |
-| Payments | Stripe (frontend ready) |
+| Payments | Razorpay (pending registration) |
+
+---
+
+## 📁 Project Structure
+
+```
+Aeterna/
+├── amplify/              # AWS Amplify Gen 2 backend config
+├── data-migration/       # One-click AWS account migration scripts
+│   ├── full-migration.ps1   # Windows (PowerShell)
+│   ├── full-migration.sh    # Linux/Mac (Bash)
+│   └── README.md            # Migration guide
+├── docs/                 # Project documentation
+│   ├── CHECKPOINT.md        # Full project status & session logs
+│   ├── CONTRIBUTING.md      # Contribution guide
+│   ├── LAUNCH.md            # Launch checklist
+│   └── LEGAL_PROTECTION.md  # Owner liability guide
+├── public/               # Static assets (favicon, icons)
+├── src/                  # Application source code
+│   ├── assets/              # Images (hero.png, SVGs)
+│   ├── components/          # 30 React components
+│   ├── data/                # Service guides data
+│   ├── hooks/               # Custom hooks (useAutoLock)
+│   └── utils/               # Crypto, subscription, exports
+├── index.html            # Vite entry point (with OG meta tags)
+├── package.json          # Dependencies & scripts
+├── vite.config.ts        # Build config
+├── tailwind.config.js    # Tailwind CSS config
+└── README.md             # Project overview (shown on GitHub)
+```
 
 ---
 
@@ -71,12 +101,12 @@
 - [x] Aeterna Community Fund option
 - [x] Public Memorial option
 
-### 💳 Payments (Stripe)
+### 💳 Payments (Razorpay - Pending)
 - [x] Pricing Page (Free / Pro ₹499 / Family ₹999)
-- [x] Payment Modal (Stripe-style card form)
+- [x] Payment Modal (card form UI ready - Razorpay integration pending)
 - [x] Plan management (upgrade/downgrade)
 - [x] Feature gating per plan
-- [ ] Backend Stripe webhook (needs API keys)
+- [ ] Razorpay webhook + payment verification (needs API keys after registration)
 
 ### ☁️ Infrastructure
 - [x] AWS CloudFront CDN (global edge locations)
@@ -85,8 +115,8 @@
 - [x] DynamoDB Table (active)
 - [x] Lambda Heartbeat Monitor (daily cron)
 - [x] SES Email Notifications
-- [x] One-Click Deploy Script (deploy-new-account.ps1 / .sh)
-- [x] Data Migration Script (migrate-data.ps1 / .sh) — export/import like rsync
+- [x] One-Click Deploy Script (data-migration/full-migration.ps1 / .sh)
+- [x] Data Migration Script (data-migration/full-migration.ps1 / .sh) — export/import like rsync
 
 ### 📂 Document Vault (Life Locker)
 - [x] 10 categories (Financial, Property, Identity, Utilities, Banking, Medical, Legal, Education, Digital, Personal)
@@ -149,7 +179,7 @@
 
 ## 🚀 Next Steps
 
-### 📂 Document Vault (Life Locker) — IN PROGRESS
+### 📂 Document Vault (Life Locker) — DEPLOYED ✅
 A comprehensive, categorized document storage system. Every document a person needs in their lifetime, encrypted and organized.
 
 | Category | What People Store |
