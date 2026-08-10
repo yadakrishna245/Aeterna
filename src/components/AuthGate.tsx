@@ -5,6 +5,7 @@ import { Shield, Lock, Eye, EyeOff } from "lucide-react";
 import { Dashboard } from "./Dashboard";
 import { LandingPage } from "./LandingPage";
 import { PasswordStrength } from "./PasswordStrength";
+import { checkIsPanicPassword } from "../utils/panicMode";
 
 export function AuthGate() {
   const [showAuth, setShowAuth] = useState(false);
@@ -32,13 +33,21 @@ function MasterPasswordGate({ signOut, user }: MasterPasswordGateProps) {
   const [passwordInput, setPasswordInput] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [isPanicMode, setIsPanicMode] = useState(false);
 
-  const handleUnlock = (e: React.FormEvent) => {
+  const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordInput.length < 8) {
       setError("Master password must be at least 8 characters.");
       return;
     }
+
+    // Check if this is the panic/duress password
+    const isPanic = await checkIsPanicPassword(passwordInput);
+    if (isPanic) {
+      setIsPanicMode(true);
+    }
+
     setMasterPassword(passwordInput);
     setPasswordInput("");
   };
@@ -50,7 +59,11 @@ function MasterPasswordGate({ signOut, user }: MasterPasswordGateProps) {
         user={user}
         masterPassword={masterPassword}
         signOut={signOut}
-        onLock={() => setMasterPassword(null)}
+        onLock={() => {
+          setMasterPassword(null);
+          setIsPanicMode(false);
+        }}
+        isPanicMode={isPanicMode}
       />
     );
   }

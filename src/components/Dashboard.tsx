@@ -27,6 +27,8 @@ import {
   Key,
   MessageCircle,
   Sparkles,
+  Watch,
+  Wrench,
 } from "lucide-react";
 import { AddAssetModal } from "./AddAssetModal";
 import { BeneficiaryManager } from "./BeneficiaryManager";
@@ -34,6 +36,12 @@ import { ActivityLog, logActivity } from "./ActivityLog";
 import { GriefAssistant } from "./GriefAssistant";
 import { TimeCapsule } from "./TimeCapsule";
 import { TwoFAVault } from "./TwoFAVault";
+import { EstateCalculator } from "./EstateCalculator";
+import { SocialProofOfLife } from "./SocialProofOfLife";
+import { LegalDocGenerator } from "./LegalDocGenerator";
+import { PanicModeSetup } from "./PanicModeSetup";
+import { HeirDashboard } from "./HeirDashboard";
+import { SmartWatchConnect } from "./SmartWatchConnect";
 
 const client = generateClient<Schema>();
 
@@ -42,6 +50,7 @@ interface DashboardProps {
   masterPassword: string;
   signOut: () => void;
   onLock: () => void;
+  isPanicMode?: boolean;
 }
 
 type VaultItem = Schema["Vault"]["type"];
@@ -51,7 +60,7 @@ interface DecryptedVaultMeta {
   heirEmail: string;
 }
 
-export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardProps) {
+export function Dashboard({ user, masterPassword, signOut, onLock, isPanicMode }: DashboardProps) {
   const [vaults, setVaults] = useState<VaultItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -61,8 +70,9 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
   const [decryptedMeta, setDecryptedMeta] = useState<Record<string, DecryptedVaultMeta>>({});
   const [decryptingId, setDecryptingId] = useState<string | null>(null);
   const [checkingIn, setCheckingIn] = useState(false);
-  const [activeTab, setActiveTab] = useState<"vaults" | "activity" | "2fa" | "capsules" | "guide">("vaults");
+  const [activeTab, setActiveTab] = useState<"vaults" | "activity" | "2fa" | "capsules" | "guide" | "devices" | "security" | "tools">("vaults");
   const [exportingBackup, setExportingBackup] = useState(false);
+  const [showHeirPreview, setShowHeirPreview] = useState(false);
 
   const toast = useToast();
 
@@ -292,6 +302,14 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
               </span>
             )}
             <button
+              onClick={() => setShowHeirPreview(true)}
+              className="btn-outline flex items-center gap-2 text-sm"
+              title="Preview what your heirs will see"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              Heir Preview
+            </button>
+            <button
               onClick={handleExportBackup}
               disabled={exportingBackup || vaults.length === 0}
               className="btn-outline flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -321,6 +339,73 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-6 animate-fade-in">
+        {/* Panic Mode: Decoy View */}
+        {isPanicMode ? (
+          <>
+            {/* Fake Status Row */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="card flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                  <ShieldCheck className="w-6 h-6 text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-400">System Status</p>
+                  <p className="text-lg font-semibold text-emerald-400">Secure</p>
+                </div>
+              </div>
+
+              <div className="card flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-gold" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-400">Next Heartbeat Due</p>
+                  <p className="text-lg font-semibold text-slate-500">No active vaults</p>
+                </div>
+              </div>
+
+              <div className="card flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                  <Lock className="w-6 h-6 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-400">Total Vaults</p>
+                  <p className="text-lg font-semibold text-slate-100">0</p>
+                </div>
+              </div>
+
+              <div className="card flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                  <Users className="w-6 h-6 text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-400">Beneficiaries</p>
+                  <p className="text-lg font-semibold text-slate-100">0</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Fake Empty Vault */}
+            <div className="card text-center py-12">
+              <Lock className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+              <p className="text-slate-400 mb-2">No vaults yet.</p>
+              <p className="text-sm text-slate-500">
+                Add your first encrypted asset to get started.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <footer className="text-center py-6 border-t border-navy-800 mt-8">
+              <p className="text-xs text-slate-600">
+                Aeterna v1.0 — Digital Estate Planner
+              </p>
+              <p className="text-xs text-slate-700 mt-1">
+                Logged in as {user.username}
+              </p>
+            </footer>
+          </>
+        ) : (
+        <>
         {/* Status Row */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* System Status */}
@@ -500,6 +585,41 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
             <Sparkles className="w-4 h-4" />
             AI Guide
           </button>
+          <button
+            onClick={() => setActiveTab("devices")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              activeTab === "devices"
+                ? "bg-navy-700 text-slate-100 shadow-sm"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <Watch className="w-4 h-4" />
+            Devices
+          </button>
+          {!isPanicMode && (
+            <button
+              onClick={() => setActiveTab("security")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                activeTab === "security"
+                  ? "bg-navy-700 text-slate-100 shadow-sm"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Shield className="w-4 h-4" />
+              Security
+            </button>
+          )}
+          <button
+            onClick={() => setActiveTab("tools")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              activeTab === "tools"
+                ? "bg-navy-700 text-slate-100 shadow-sm"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <Wrench className="w-4 h-4" />
+            Tools
+          </button>
         </div>
 
         {/* Tab Content */}
@@ -520,6 +640,28 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
         ) : activeTab === "guide" ? (
           <div className="card">
             <GriefAssistant masterPassword={masterPassword} mode="owner" />
+          </div>
+        ) : activeTab === "devices" ? (
+          <div className="space-y-6">
+            <div className="card">
+              <SmartWatchConnect onHeartbeatDetected={handleCheckIn} />
+            </div>
+            <div className="card">
+              <SocialProofOfLife />
+            </div>
+          </div>
+        ) : activeTab === "security" && !isPanicMode ? (
+          <div className="card">
+            <PanicModeSetup />
+          </div>
+        ) : activeTab === "tools" ? (
+          <div className="space-y-6">
+            <div className="card">
+              <EstateCalculator />
+            </div>
+            <div className="card">
+              <LegalDocGenerator />
+            </div>
           </div>
         ) : (
         <>
@@ -666,6 +808,8 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
             Logged in as {user.username}
           </p>
         </footer>
+        </>
+        )}
       </main>
 
       {/* Add Asset Modal */}
@@ -678,6 +822,44 @@ export function Dashboard({ user, masterPassword, signOut, onLock }: DashboardPr
             fetchVaults();
           }}
         />
+      )}
+
+      {/* Heir Preview Overlay */}
+      {showHeirPreview && (
+        <div className="fixed inset-0 z-50 overflow-auto">
+          {/* Preview Banner */}
+          <div className="sticky top-0 z-60 bg-amber-500 text-navy-950 text-center py-2 px-4 font-semibold text-sm flex items-center justify-center gap-3 shadow-lg">
+            <Eye className="w-4 h-4" />
+            PREVIEW MODE — This is what your heirs will see
+            <button
+              onClick={() => setShowHeirPreview(false)}
+              className="ml-4 px-3 py-1 bg-navy-900 text-white rounded-md text-xs font-medium hover:bg-navy-800 transition-colors"
+            >
+              Close Preview
+            </button>
+          </div>
+
+          {/* Heir Dashboard */}
+          <HeirDashboard
+            heirName="Your Beneficiary"
+            ownerName={user.username}
+            vaults={vaults.map((v) => ({
+              id: v.id,
+              assetName: decryptedMeta[v.id]?.assetName || "[Encrypted Asset]",
+              category: (v as any).category || "general",
+              instructions: "Log in to the account using the credentials below.\nNavigate to Settings > Security.\nUpdate the recovery email to your own.\nChange the password to secure the account.",
+              twoFA: [],
+            }))}
+            messages={[
+              {
+                id: "sample-1",
+                subject: "A message for you",
+                body: "This is a preview of what personal messages will look like when delivered to your heirs. You can create time capsules in the Time Capsules tab.",
+                date: new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+              },
+            ]}
+          />
+        </div>
       )}
     </div>
   );
