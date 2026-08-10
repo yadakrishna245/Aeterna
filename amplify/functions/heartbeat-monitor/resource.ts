@@ -6,4 +6,7 @@ export const heartbeatMonitor = defineFunction({
   entry: "./handler.ts",
   timeoutSeconds: 300,
   memoryMB: 256,
+  bundling: {
+    externalPackages: ["@aws-sdk/client-dynamodb"],
+  },
 });

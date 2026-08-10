@@ -8,4 +8,7 @@ export const sendNotification = defineFunction({
   environment: {
     SES_SENDER_EMAIL: "noreply@aeterna.app",
   },
+  bundling: {
+    externalPackages: ["@aws-sdk/client-ses"],
+  },
 });
