@@ -1,118 +1,144 @@
 # 🔐 AETERNA — Project Checkpoint
 **Date:** August 10, 2026 (Monday)
 **Status:** ✅ FULLY DEPLOYED & LIVE
+**Live URL:** https://d3mk78gm9j9bdd.cloudfront.net
+**GitHub:** https://github.com/yadakrishna245/Aeterna
 
 ---
 
-## 🌐 Live URL
+## 🏗️ Architecture
 
-**https://d3mk78gm9j9bdd.cloudfront.net**
-
----
-
-## ✅ Deployment Status — All Systems Operational
-
-| Service | Resource ID | Status |
-|---------|------------|--------|
-| CloudFront CDN | `EUR1I2U5K7OJ1` → `d3mk78gm9j9bdd.cloudfront.net` | ✅ Deployed |
-| S3 Hosting | `aeterna-frontend-hosting-2026` | ✅ Active |
-| Cognito User Pool | `us-east-1_cCm6NXVrV` | ✅ Active |
-| Cognito Client | `3eih3b9hocqhcerrj61tinijvr` | ✅ Configured |
-| Cognito Identity Pool | `us-east-1:abb7298e-15cc-4c22-a973-3a5ace3fbf8d` | ✅ Active |
-| DynamoDB Table | `Vault-5dvffs2v5vclnau2vveu3m4uvi-NONE` | ✅ Active (PAY_PER_REQUEST) |
-| Lambda Function | `amplify-aeterna-krishna-s-heartbeatmonitorlambda96-xYE4YETBQ8Vq` | ✅ Active |
-| AppSync GraphQL | `auc5gayebngjblluahj4x2hlbu.appsync-api.us-east-1.amazonaws.com` | ✅ Active |
-| Amplify Stack | `amplify-aeterna-krishna-sandbox-c8308b0f28` | ✅ Deployed |
+| Layer | Technology |
+|-------|------------|
+| Frontend | React + Vite + TypeScript + Tailwind CSS |
+| Icons | Lucide React |
+| Backend | AWS Amplify Gen 2 (Serverless) |
+| Database | Amazon DynamoDB |
+| Authentication | Amazon Cognito |
+| Automation | AWS Lambda (daily cron) |
+| CDN | Amazon CloudFront |
+| Storage | Amazon S3 |
+| Email | Amazon SES |
+| Encryption | Web Crypto API (AES-256-GCM + PBKDF2) |
+| Payments | Stripe (frontend ready) |
 
 ---
 
-## 📌 What's Done
+## ✅ All Features Built (30+)
 
-- ✅ Vite + React + TypeScript project initialized
-- ✅ AWS Amplify Gen 2 backend configured (Auth, Data, Functions)
-- ✅ DynamoDB schema — Vault model with owner isolation
-- ✅ Cognito email-based authentication
-- ✅ Client-side AES-256-GCM + PBKDF2 encryption (crypto.ts)
-- ✅ AuthGate component (Login + Master Password unlock)
-- ✅ Dashboard (status cards, heartbeat countdown, check-in button, vault list)
-- ✅ AddAssetModal (encrypt & store vault entries)
-- ✅ Dead Man's Switch Lambda (daily cron, scans vaults, triggers alerts)
-- ✅ Dark navy/gold "Swiss Bank" UI theme (Tailwind)
-- ✅ README with problem/solution, mermaid diagrams, setup docs
-- ✅ Code pushed to GitHub: https://github.com/yadakrishna245/Aeterna
-- ✅ Build verified (`npm run build` passes clean)
-- ✅ **Backend deployed** — Cognito + DynamoDB + AppSync + Lambda
-- ✅ **Frontend deployed** — S3 + CloudFront (HTTPS, globally cached)
-- ✅ **CloudFront cache invalidated** — Latest build served worldwide
-- ✅ **amplify_outputs.json** — Real AWS resource IDs configured
+### 🔒 Core Security
+- [x] End-to-End Encrypted (ALL fields — name, email, payload)
+- [x] Panic Mode / Duress Pin (fake vault under coercion)
+- [x] Auto-Lock (5 min inactivity)
+- [x] Password Strength Meter
+- [x] Vault Export/Backup (.aeterna encrypted file)
+- [x] Shamir's Secret Sharing (2-of-3 key recovery)
+- [x] Key Recovery Setup (3 fragments distributed)
 
----
+### 💓 Dead Man's Switch
+- [x] Manual Heartbeat Check-In button
+- [x] Scheduled Date Trigger (milestone-based)
+- [x] Smartwatch Passive Check-In (Apple Watch, Pixel Watch, Fitbit)
+- [x] Social Proof of Life (social media activity detection)
+- [x] Emergency Escalation (grace period + 3 reminders before trigger)
 
-## 🏗️ Architecture (Live)
+### 🗄️ Vault Features
+- [x] Multi-Beneficiary Management (assign per vault)
+- [x] 2FA Recovery Vault (TOTP secrets + backup codes) ⭐ FIRST IN MARKET
+- [x] Video/Voice Messages (MediaRecorder + encrypted)
+- [x] File Upload (drag-drop, encrypted, up to 5 files)
+- [x] Time Capsule Messages (milestone-based delivery) ⭐ FIRST IN MARKET
 
-```
-React Build (dist/) → S3 Bucket → CloudFront CDN → Users Globally
-                                        ↓
-                        Cognito + DynamoDB + Lambda + AppSync (serverless backend)
-```
+### 🧠 Intelligence
+- [x] AI Grief Assistant (Digital DNA Wizard) ⭐ FIRST IN MARKET
+- [x] Service Recovery Guides (15+ platforms)
+- [x] Estate Value Calculator
+- [x] Legal Document Generator (printable authorization letter)
+- [x] Activity Log (full audit trail)
 
-```
-User → https://d3mk78gm9j9bdd.cloudfront.net
-        → CloudFront (EUR1I2U5K7OJ1)
-            → S3 (aeterna-frontend-hosting-2026)
-        → Cognito Auth (us-east-1_cCm6NXVrV)
-        → AppSync GraphQL API
-            → DynamoDB (Vault table)
-        → Lambda Heartbeat Monitor (daily EventBridge cron)
-```
+### 👤 User Experience
+- [x] Premium Landing Page (hero, features, pricing)
+- [x] Onboarding Flow (4-step guided tour)
+- [x] Toast Notifications (no more alerts)
+- [x] Heir Dashboard Preview (what beneficiaries see)
+- [x] Emergency Wallet Card (printable ICE card)
+- [x] Trusted Contact Awareness (notify people you use Aeterna)
 
-**Region:** us-east-1
-**Account:** 575589967706
-**Cost estimate:** ~$1-3/month for thousands of users (AWS Free Tier covers first 12 months)
+### 🏛️ Orphan Account / No-Heir Policy
+- [x] Unclaimed Estate Policy (45-day configurable)
+- [x] Auto-Deletion option
+- [x] Charity Donation (Wikipedia, EFF, GiveDirectly, PM CARES, custom)
+- [x] Aeterna Community Fund option
+- [x] Public Memorial option
 
----
+### 💳 Payments (Stripe)
+- [x] Pricing Page (Free / Pro ₹499 / Family ₹999)
+- [x] Payment Modal (Stripe-style card form)
+- [x] Plan management (upgrade/downgrade)
+- [x] Feature gating per plan
+- [ ] Backend Stripe webhook (needs API keys)
 
-## 🚀 Next Steps — SaaS Features to Add
-
-- [ ] Custom domain setup (e.g., aeterna.app or aeterna.in)
-- [ ] Stripe integration (₹499/year plan)
-- [ ] Amazon SES for real heir email notifications
-- [ ] Emergency verification chain (SMS + backup contacts before release)
-- [ ] Video message recording/upload for heirs
-- [ ] Multi-tier executor system (different vaults → different people)
-- [ ] Landing page with waitlist
-
----
-
-## 🏆 Market Research — Competitors
-
-| Competitor | Pricing | Our Edge |
-|-----------|---------|----------|
-| Cipherwill | $40/year | No video messages, no multi-tier executors |
-| Killswitch.app | Unknown | Basic features, no heartbeat customization |
-| DMS.today | Unknown | Instructions only, no full estate planning |
-| AfterKey | Open-source | CLI-only, no UI |
-| DeadSerious | Hackathon | Not production-ready |
-
-### Our Differentiation:
-1. 📹 Video messages to heirs (nobody does this well)
-2. 👥 Multi-tier executor system (spouse ≠ lawyer ≠ kids)
-3. 🇮🇳 India-first pricing (₹499/year vs $40/year)
-4. ⚠️ Emergency verification chain (no false triggers)
-5. 🔐 End-to-end encrypted (server never sees plaintext)
+### ☁️ Infrastructure
+- [x] AWS CloudFront CDN (global edge locations)
+- [x] S3 Static Hosting
+- [x] Cognito User Pool (active)
+- [x] DynamoDB Table (active)
+- [x] Lambda Heartbeat Monitor (daily cron)
+- [x] SES Email Notifications
 
 ---
 
-## 📂 Repo
-- **GitHub:** https://github.com/yadakrishna245/Aeterna
-- **Local:** C:\Gemini-Krishna-Data-june-2026\Gemini-Krishna-Data-june-2026\Videos\Aeterna
-- **Branch:** main
+## 🏆 Competitive Advantage
+
+| Feature | Aeterna | Killswitch ($480/yr) | Cipherwill ($40/yr) |
+|---------|:---:|:---:|:---:|
+| All fields encrypted | ✅ | ❌ | ❌ |
+| 2FA Recovery Vault | ✅ | ❌ | ❌ |
+| Time Capsule Messages | ✅ | ❌ | ❌ |
+| AI Grief Assistant | ✅ | ❌ | ❌ |
+| Panic Mode / Duress Pin | ✅ | ❌ | ❌ |
+| Smartwatch Check-In | ✅ | ❌ | ❌ |
+| Shamir's Secret Sharing | ✅ | ❌ | ❌ |
+| Heir Dashboard | ✅ | ❌ | ❌ |
+| Emergency Wallet Card | ✅ | ❌ | ❌ |
+| Estate Value Calculator | ✅ | ❌ | ❌ |
+| Legal Doc Generator | ✅ | ❌ | ❌ |
+| Charity Legacy | ✅ | ❌ | ❌ |
+| Video Messages | ✅ | ✅ | ❌ |
+| Multi-beneficiary | ✅ | ✅ | ✅ |
+| Price | ₹499/yr | $480/yr | $40/yr |
 
 ---
 
-## 💡 Notes
-- No "zero-knowledge" branding anywhere (removed per decision)
-- App name: **Aeterna** (Latin for "eternal")
-- Target: Crypto investors, parents, entrepreneurs, IT professionals
-- Market validated — competitors exist and charge $40/year = people pay for this
-- Deployed: August 10, 2026 at 8:22 AM IST
+## 💰 Pricing Model
+
+| Plan | Price | Limits |
+|------|-------|--------|
+| Free | ₹0 | 3 vaults, 1 beneficiary, email switch |
+| Pro | ₹499/year | Unlimited vaults, 5 beneficiaries, video, 2FA, time capsules |
+| Family | ₹999/year | Unlimited everything, SMS alerts, Shamir recovery, priority support |
+
+---
+
+## 🚀 Next Steps
+- [ ] Custom domain (aeterna.in / aeterna.app)
+- [ ] Stripe backend webhook (real payments)
+- [ ] WhatsApp Business API for notifications
+- [ ] Mobile app (React Native or PWA)
+- [ ] Marketing: ProductHunt launch, Reddit posts, LinkedIn
+- [ ] Beta users: 50 early adopters for feedback
+
+---
+
+## 📊 Market Research
+
+| Competitor | Price | Our Edge |
+|-----------|-------|----------|
+| Killswitch.app | $7.99-39.99/mo | 12 features they don't have, 80x cheaper |
+| Cipherwill | $40/yr | 12 unique features, India-first pricing |
+| DeathNote.ai | Free | Messages only, no vaults/encryption |
+| Mortui | Free (Android) | Android-only, no web, no encryption |
+
+---
+
+**Built with** ❤️ **by Krishna** | 30+ Features | AWS Serverless | First-in-Market Digital Estate Planner

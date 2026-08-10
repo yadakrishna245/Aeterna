@@ -48,6 +48,8 @@ import { KeyRecoverySetup } from "./KeyRecoverySetup";
 import { EmergencyCard } from "./EmergencyCard";
 import { TrustedContactSetup } from "./TrustedContactSetup";
 import { UnclaimedPolicy } from "./UnclaimedPolicy";
+import { PricingPage } from "./PricingPage";
+import { getCurrentPlan, canUseFeature } from "../utils/subscription";
 
 const client = generateClient<Schema>();
 
@@ -76,7 +78,7 @@ export function Dashboard({ user, masterPassword, signOut, onLock, isPanicMode }
   const [decryptedMeta, setDecryptedMeta] = useState<Record<string, DecryptedVaultMeta>>({});
   const [decryptingId, setDecryptingId] = useState<string | null>(null);
   const [checkingIn, setCheckingIn] = useState(false);
-  const [activeTab, setActiveTab] = useState<"vaults" | "activity" | "2fa" | "capsules" | "guide" | "devices" | "security" | "tools">("vaults");
+  const [activeTab, setActiveTab] = useState<"vaults" | "activity" | "2fa" | "capsules" | "guide" | "devices" | "security" | "tools" | "subscription">("vaults");
   const [exportingBackup, setExportingBackup] = useState(false);
   const [showHeirPreview, setShowHeirPreview] = useState(false);
 
@@ -299,6 +301,24 @@ export function Dashboard({ user, masterPassword, signOut, onLock, isPanicMode }
             <span className="text-xs bg-gold/10 text-gold px-2 py-0.5 rounded-full border border-gold/20">
               End-to-End Encrypted
             </span>
+            {(() => {
+              const plan = getCurrentPlan();
+              if (plan === "pro") return (
+                <span className="text-xs bg-gold/20 text-gold px-2 py-0.5 rounded-full border border-gold/30 font-semibold">
+                  PRO
+                </span>
+              );
+              if (plan === "family") return (
+                <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full border border-purple-500/30 font-semibold">
+                  FAMILY
+                </span>
+              );
+              return (
+                <span className="text-xs bg-slate-700/50 text-slate-400 px-2 py-0.5 rounded-full border border-slate-600/30">
+                  FREE
+                </span>
+              );
+            })()}
             {(() => {
               try {
                 const policy = localStorage.getItem("aeterna_unclaimed_policy");
@@ -641,6 +661,17 @@ export function Dashboard({ user, masterPassword, signOut, onLock, isPanicMode }
             <Wrench className="w-4 h-4" />
             Tools
           </button>
+          <button
+            onClick={() => setActiveTab("subscription")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              activeTab === "subscription"
+                ? "bg-navy-700 text-slate-100 shadow-sm"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <CreditCard className="w-4 h-4" />
+            Plan
+          </button>
         </div>
 
         {/* Tab Content */}
@@ -653,11 +684,43 @@ export function Dashboard({ user, masterPassword, signOut, onLock, isPanicMode }
             <ActivityLog />
           </div>
         ) : activeTab === "2fa" ? (
-          <div className="card">
-            <TwoFAVault masterPassword={masterPassword} />
-          </div>
+          !canUseFeature("2fa_vault") ? (
+            <div className="card text-center py-12">
+              <Lock className="w-10 h-10 text-gold/50 mx-auto mb-3" />
+              <h3 className="text-lg font-semibold text-slate-100 mb-2">2FA Vault is a Pro Feature</h3>
+              <p className="text-sm text-slate-400 mb-4 max-w-md mx-auto">
+                Upgrade to Pro or Family to securely store and manage your 2FA recovery codes.
+              </p>
+              <button
+                onClick={() => setActiveTab("subscription")}
+                className="btn-gold px-6 py-2.5 text-sm"
+              >
+                Upgrade Now
+              </button>
+            </div>
+          ) : (
+            <div className="card">
+              <TwoFAVault masterPassword={masterPassword} />
+            </div>
+          )
         ) : activeTab === "capsules" ? (
-          <TimeCapsule masterPassword={masterPassword} />
+          !canUseFeature("time_capsules") ? (
+            <div className="card text-center py-12">
+              <Lock className="w-10 h-10 text-gold/50 mx-auto mb-3" />
+              <h3 className="text-lg font-semibold text-slate-100 mb-2">Time Capsules is a Pro Feature</h3>
+              <p className="text-sm text-slate-400 mb-4 max-w-md mx-auto">
+                Upgrade to Pro or Family to create time-locked messages for your loved ones.
+              </p>
+              <button
+                onClick={() => setActiveTab("subscription")}
+                className="btn-gold px-6 py-2.5 text-sm"
+              >
+                Upgrade Now
+              </button>
+            </div>
+          ) : (
+            <TimeCapsule masterPassword={masterPassword} />
+          )
         ) : activeTab === "guide" ? (
           <div className="card">
             <GriefAssistant masterPassword={masterPassword} mode="owner" />
@@ -720,6 +783,8 @@ export function Dashboard({ user, masterPassword, signOut, onLock, isPanicMode }
               <LegalDocGenerator />
             </div>
           </div>
+        ) : activeTab === "subscription" ? (
+          <PricingPage />
         ) : (
         <>
         {/* Vault List */}

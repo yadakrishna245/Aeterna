@@ -274,7 +274,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
                 ))}
               </ul>
               <button onClick={onGetStarted} className="btn-outline w-full">
-                Get Started Free
+                Start Free
               </button>
             </div>
 
@@ -307,7 +307,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
                 ))}
               </ul>
               <button onClick={onGetStarted} className="btn-gold w-full">
-                Start Pro Trial
+                Get Pro
               </button>
             </div>
 
@@ -336,7 +336,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
                 ))}
               </ul>
               <button onClick={onGetStarted} className="btn-outline w-full">
-                Start Family Plan
+                Get Family
               </button>
             </div>
           </div>
