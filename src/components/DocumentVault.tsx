@@ -5,6 +5,7 @@ import {
   Monitor, Package, Landmark, Home, Fuel
 } from 'lucide-react';
 import { encryptBinary, decryptBinary } from '../utils/crypto';
+import { getCurrentPlan } from '../utils/subscription';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -123,7 +124,15 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
   const [previewMime, setPreviewMime] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ─── Free Tier Limit ───────────────────────────────────────────────────────
+  const FREE_TIER_LIMIT = 2;
+  const currentPlan = getCurrentPlan();
+  const isFreeTier = currentPlan === 'free';
+  const totalDocuments = documents.length;
+  const canUploadMore = !isFreeTier || totalDocuments < FREE_TIER_LIMIT;
 
   // Persist documents on change
   useEffect(() => {
@@ -142,6 +151,13 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+
+    if (isFreeTier && totalDocuments >= FREE_TIER_LIMIT) {
+      // Show upgrade message - don't allow upload
+      setShowUpgradePrompt(true);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
 
     setUploading(true);
     setError(null);
@@ -181,7 +197,7 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
-  }, [activeCategory, masterPassword]);
+  }, [activeCategory, masterPassword, isFreeTier, totalDocuments]);
 
   // ─── Preview Handler ─────────────────────────────────────────────────────
 
@@ -306,7 +322,13 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-slate-100">Document Vault</h1>
-                <p className="text-xs text-slate-400">{totalDocs} document{totalDocs !== 1 ? 's' : ''} • AES-256 encrypted</p>
+                <p className="text-xs text-slate-400">
+                  {totalDocs} document{totalDocs !== 1 ? 's' : ''} • AES-256 encrypted
+                  {' • '}
+                  <span className={isFreeTier ? 'text-amber-400' : 'text-emerald-400'}>
+                    {isFreeTier ? `${totalDocuments}/${FREE_TIER_LIMIT} documents (Free)` : `Unlimited (${currentPlan === 'pro' ? 'Pro' : 'Family'})`}
+                  </span>
+                </p>
               </div>
             </div>
 
@@ -398,6 +420,33 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
             </div>
           )}
 
+          {/* Upgrade Prompt / Free Tier Limit Banner */}
+          {isFreeTier && !canUploadMore && (
+            <div className="bg-gold/5 border border-gold/20 rounded-xl p-4 text-center mb-4">
+              <p className="text-sm text-slate-300 mb-2">You've reached the free tier limit (2 documents)</p>
+              <p className="text-xs text-slate-400 mb-3">Upgrade to Pro (₹499/year) or Family (₹999/year) for unlimited document storage</p>
+              <button className="btn-gold text-sm px-4 py-2">Upgrade Plan</button>
+            </div>
+          )}
+
+          {/* Upgrade Prompt Modal (shown when user clicks upload at limit) */}
+          {showUpgradePrompt && (
+            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowUpgradePrompt(false)} role="dialog" aria-label="Upgrade prompt">
+              <div className="bg-navy-800 border border-navy-600 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl" onClick={e => e.stopPropagation()}>
+                <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Upload className="w-6 h-6 text-amber-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-100 mb-2">Free Tier Limit Reached</h3>
+                <p className="text-sm text-slate-300 mb-2">You've reached the free tier limit of {FREE_TIER_LIMIT} documents.</p>
+                <p className="text-xs text-slate-400 mb-4">Upgrade to Pro (₹499/year) or Family (₹999/year) for unlimited document storage.</p>
+                <div className="flex gap-3 justify-center">
+                  <button onClick={() => setShowUpgradePrompt(false)} className="btn-outline px-4 py-2 text-sm">Maybe Later</button>
+                  <button className="btn-gold px-4 py-2 text-sm">Upgrade Plan</button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Toolbar */}
           {!searchQuery && (
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
@@ -422,10 +471,16 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
 
                 {/* Upload Button */}
                 <button
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => {
+                    if (!canUploadMore) {
+                      setShowUpgradePrompt(true);
+                    } else {
+                      fileInputRef.current?.click();
+                    }
+                  }}
                   disabled={uploading}
                   className="btn-gold px-4 py-2 text-sm flex items-center gap-2 disabled:opacity-50"
-                  aria-label="Upload document"
+                  aria-label={canUploadMore ? "Upload document" : "Upgrade to upload more documents"}
                 >
                   {uploading ? (
                     <div className="w-4 h-4 border-2 border-navy-900 border-t-transparent rounded-full animate-spin" />
