@@ -18,6 +18,7 @@ import {
   Calendar,
   Zap,
   ChevronRight,
+  Heart,
 } from "lucide-react";
 
 interface LandingPageProps {
@@ -220,6 +221,11 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
                 icon: Calendar,
                 title: "Scheduled Delivery",
                 desc: "Set specific dates for vault delivery — birthdays, anniversaries, or any future milestone.",
+              },
+              {
+                icon: Heart,
+                title: "Charity Legacy",
+                desc: "No heirs? Your digital assets can fund digital literacy programs instead of being lost forever.",
               },
             ].map((feature) => (
               <div

@@ -29,6 +29,8 @@ import {
   Sparkles,
   Watch,
   Wrench,
+  CreditCard,
+  Bell,
 } from "lucide-react";
 import { AddAssetModal } from "./AddAssetModal";
 import { BeneficiaryManager } from "./BeneficiaryManager";
@@ -42,6 +44,10 @@ import { LegalDocGenerator } from "./LegalDocGenerator";
 import { PanicModeSetup } from "./PanicModeSetup";
 import { HeirDashboard } from "./HeirDashboard";
 import { SmartWatchConnect } from "./SmartWatchConnect";
+import { KeyRecoverySetup } from "./KeyRecoverySetup";
+import { EmergencyCard } from "./EmergencyCard";
+import { TrustedContactSetup } from "./TrustedContactSetup";
+import { UnclaimedPolicy } from "./UnclaimedPolicy";
 
 const client = generateClient<Schema>();
 
@@ -293,6 +299,21 @@ export function Dashboard({ user, masterPassword, signOut, onLock, isPanicMode }
             <span className="text-xs bg-gold/10 text-gold px-2 py-0.5 rounded-full border border-gold/20">
               End-to-End Encrypted
             </span>
+            {(() => {
+              try {
+                const policy = localStorage.getItem("aeterna_unclaimed_policy");
+                if (policy) {
+                  const parsed = JSON.parse(policy);
+                  const labels: Record<string, string> = { deletion: "Delete", charity: "Donate", community: "Community", memorial: "Memorial" };
+                  return (
+                    <span className="text-xs bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded-full border border-purple-500/20">
+                      Estate: {labels[parsed.option] || "Set"} · {parsed.period}d
+                    </span>
+                  );
+                }
+              } catch { /* ignore */ }
+              return null;
+            })()}
           </div>
           <div className="flex items-center gap-3">
             {remainingSeconds < 60 && (
@@ -651,11 +672,47 @@ export function Dashboard({ user, masterPassword, signOut, onLock, isPanicMode }
             </div>
           </div>
         ) : activeTab === "security" && !isPanicMode ? (
-          <div className="card">
-            <PanicModeSetup />
+          <div className="space-y-6">
+            {/* Key Recovery (Shamir's Secret Sharing) */}
+            <div className="card">
+              <div className="flex items-center gap-3 mb-4">
+                <Key className="w-5 h-5 text-gold" />
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-100">
+                    Key Recovery (Shamir&apos;s Secret Sharing)
+                  </h2>
+                  <p className="text-sm text-slate-400">
+                    Split your master password so heirs can recover vaults without knowing it
+                  </p>
+                </div>
+              </div>
+              <KeyRecoverySetup masterPassword={masterPassword} />
+            </div>
+            <div className="card">
+              <PanicModeSetup />
+            </div>
+            <div className="card">
+              <UnclaimedPolicy />
+            </div>
           </div>
         ) : activeTab === "tools" ? (
           <div className="space-y-6">
+            <div className="card">
+              <div className="flex items-center gap-2 mb-6">
+                <CreditCard className="w-5 h-5 text-gold" />
+                <h2 className="text-lg font-semibold text-slate-100">Emergency Wallet Card</h2>
+              </div>
+              <EmergencyCard
+                userName={user.username}
+              />
+            </div>
+            <div className="card">
+              <div className="flex items-center gap-2 mb-6">
+                <Bell className="w-5 h-5 text-gold" />
+                <h2 className="text-lg font-semibold text-slate-100">Awareness Contacts</h2>
+              </div>
+              <TrustedContactSetup />
+            </div>
             <div className="card">
               <EstateCalculator />
             </div>
