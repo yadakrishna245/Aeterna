@@ -76,7 +76,15 @@ Write-Host "  Exported: $cognitoCount users" -ForegroundColor Green
 Write-Host "[5/12] Downloading S3 bucket: $oldBucket..." -ForegroundColor Yellow
 aws s3 sync "s3://$oldBucket" "$BACKUP/s3/" --region $oldRegion --exact-timestamps 2>&1 | Out-Null
 $s3Count = (Get-ChildItem "$BACKUP/s3" -Recurse -File).Count
-Write-Host "  Exported: $s3Count files" -ForegroundColor Green
+Write-Host "  Exported: $s3Count files (frontend)" -ForegroundColor Green
+
+# S3 - Documents Vault bucket
+Write-Host "  Downloading Documents bucket: aeterna-documents-vault..." -ForegroundColor Cyan
+$oldDocsBucket = "aeterna-documents-vault"
+New-Item -ItemType Directory -Force -Path "$BACKUP/s3-documents" | Out-Null
+aws s3 sync "s3://$oldDocsBucket" "$BACKUP/s3-documents/" --region $oldRegion --exact-timestamps 2>&1 | Out-Null
+$docsCount = (Get-ChildItem "$BACKUP/s3-documents" -Recurse -File -ErrorAction SilentlyContinue).Count
+Write-Host "  Exported: $docsCount encrypted document files" -ForegroundColor Green
 
 # Route53
 Write-Host "[6/12] Exporting Route53..." -ForegroundColor Yellow
@@ -243,11 +251,29 @@ foreach ($u in $allUsers) {
 }
 Write-Host "  Cognito: $uImported imported" -ForegroundColor Green
 
-# S3 files
-Write-Host "  S3: syncing $s3Count files..." -ForegroundColor Cyan
+# S3 files (frontend)
+Write-Host "  S3: syncing $s3Count frontend files..." -ForegroundColor Cyan
 aws s3 sync "$BACKUP/s3/" "s3://$newBucket/" --region $newRegion --exact-timestamps 2>&1 | Out-Null
 $newS3 = (aws s3 ls "s3://$newBucket/" --recursive --region $newRegion 2>&1 | Measure-Object -Line).Lines
-Write-Host "  S3: $newS3 files synced" -ForegroundColor Green
+Write-Host "  S3 frontend: $newS3 files synced" -ForegroundColor Green
+
+# S3 Documents bucket - create and sync encrypted user documents
+$newDocsBucket = "aeterna-documents-vault"
+Write-Host "  Creating Documents bucket: $newDocsBucket..." -ForegroundColor Cyan
+aws s3 mb "s3://$newDocsBucket" --region $newRegion 2>&1 | Out-Null
+# Set CORS
+$docsCors = "{""CORSRules"":[{""AllowedHeaders"":[""*""],""AllowedMethods"":[""GET"",""PUT"",""POST"",""DELETE"",""HEAD""],""AllowedOrigins"":[""*""],""ExposeHeaders"":[""ETag""],""MaxAgeSeconds"":3600}]}"
+aws s3api put-bucket-cors --bucket $newDocsBucket --cors-configuration $docsCors --region $newRegion 2>&1 | Out-Null
+# Sync documents
+if ($docsCount -gt 0) {
+    Write-Host "  Syncing $docsCount encrypted documents..." -ForegroundColor Cyan
+    aws s3 sync "$BACKUP/s3-documents/" "s3://$newDocsBucket/" --region $newRegion --exact-timestamps 2>&1 | Out-Null
+    $newDocs = (aws s3 ls "s3://$newDocsBucket/" --recursive --region $newRegion 2>&1 | Measure-Object -Line).Lines
+    Write-Host "  Documents: $newDocs files synced" -ForegroundColor Green
+} else {
+    Write-Host "  No documents to sync (bucket empty)" -ForegroundColor DarkYellow
+    $newDocs = 0
+}
 
 # Re-sync if mismatch
 if ($newS3 -lt $s3Count) {
@@ -270,6 +296,7 @@ Write-Host "  ============================================================" -For
 Write-Host "  DynamoDB : Exported=$dynamoCount | Imported=$vDynamo | $(if($vDynamo -ge $dynamoCount){'VERIFIED'}else{'MISMATCH'})" -ForegroundColor $(if($vDynamo -ge $dynamoCount){"Green"}else{"Red"})
 Write-Host "  Cognito  : Exported=$cognitoCount | Imported=$vCognito | $(if($vCognito -ge $uImported){'VERIFIED'}else{'PARTIAL'})" -ForegroundColor $(if($vCognito -ge $uImported){"Green"}else{"Yellow"})
 Write-Host "  S3 Files : Exported=$s3Count | Imported=$newS3 | $(if($newS3 -ge $s3Count){'VERIFIED'}else{'MISMATCH'})" -ForegroundColor $(if($newS3 -ge $s3Count){"Green"}else{"Red"})
+Write-Host "  Documents: Exported=$docsCount | Imported=$newDocs | $(if($newDocs -ge $docsCount){'VERIFIED'}else{'MISMATCH'})" -ForegroundColor $(if($newDocs -ge $docsCount){"Green"}else{"Red"})
 Write-Host "  Route53  : $(if($r53Done){'MIGRATED'}else{'SKIPPED'})" -ForegroundColor $(if($r53Done){"Green"}else{"DarkYellow"})
 Write-Host "  Lambda   : $lambdaCount functions backed up" -ForegroundColor Green
 Write-Host "  ============================================================" -ForegroundColor White
