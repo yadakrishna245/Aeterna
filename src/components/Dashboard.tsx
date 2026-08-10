@@ -26,11 +26,12 @@ import {
   Timer,
   Key,
   MessageCircle,
-  Sparkles,
+  BookOpen,
   Watch,
   Wrench,
   CreditCard,
   Bell,
+  X,
 } from "lucide-react";
 import { AddAssetModal } from "./AddAssetModal";
 import { BeneficiaryManager } from "./BeneficiaryManager";
@@ -81,6 +82,9 @@ export function Dashboard({ user, masterPassword, signOut, onLock, isPanicMode }
   const [activeTab, setActiveTab] = useState<"vaults" | "activity" | "2fa" | "capsules" | "guide" | "devices" | "security" | "tools" | "subscription">("vaults");
   const [exportingBackup, setExportingBackup] = useState(false);
   const [showHeirPreview, setShowHeirPreview] = useState(false);
+  const [welcomeDismissed, setWelcomeDismissed] = useState(() => {
+    return localStorage.getItem("aeterna_welcome_dismissed") === "true";
+  });
 
   const toast = useToast();
 
@@ -506,8 +510,34 @@ export function Dashboard({ user, masterPassword, signOut, onLock, isPanicMode }
           </div>
         </div>
 
+        {/* Welcome Card — shown only when 0 vaults and not dismissed */}
+        {!loading && vaults.length === 0 && !welcomeDismissed && (
+          <div className="relative bg-navy-800 border border-navy-700 rounded-xl p-6 border-l-4 border-l-gold animate-fade-in">
+            <button
+              onClick={() => {
+                setWelcomeDismissed(true);
+                localStorage.setItem("aeterna_welcome_dismissed", "true");
+              }}
+              className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 transition-colors"
+              title="Dismiss"
+              aria-label="Dismiss welcome card"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <h2 className="text-lg font-semibold text-slate-100 mb-2">Welcome to Aeterna 👋</h2>
+            <p className="text-sm text-slate-300 mb-4">
+              Your digital estate planner. Here&apos;s how to get started:
+            </p>
+            <ol className="space-y-2 text-sm text-slate-300">
+              <li>1. Add a beneficiary (who gets your assets)</li>
+              <li>2. Create an encrypted vault (passwords, crypto, files)</li>
+              <li>3. Check in regularly to keep the switch safe</li>
+            </ol>
+          </div>
+        )}
+
         {/* Check-In Button */}
-        <div className="card text-center py-8">
+        <div className="card text-center py-8" data-checkin>
           <HeartPulse className="w-10 h-10 text-gold mx-auto mb-3 animate-pulse-slow" />
           <h2 className="text-lg font-semibold text-slate-100 mb-2">Dead Man's Switch</h2>
           <p className="text-sm text-slate-400 mb-6 max-w-md mx-auto">
@@ -623,8 +653,8 @@ export function Dashboard({ user, masterPassword, signOut, onLock, isPanicMode }
                 : "text-slate-400 hover:text-slate-200"
             }`}
           >
-            <Sparkles className="w-4 h-4" />
-            AI Guide
+            <BookOpen className="w-4 h-4" />
+            Access Guide
           </button>
           <button
             onClick={() => setActiveTab("devices")}

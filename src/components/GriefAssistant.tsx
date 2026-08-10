@@ -10,7 +10,6 @@ import {
   Clock,
   Link,
   Shield,
-  Sparkles,
   BookOpen,
   Mail,
   Smartphone,
@@ -234,7 +233,7 @@ export function GriefAssistant({ masterPassword, mode }: GriefAssistantProps) {
       // Encrypt the guide
       const encrypted = await encryptData(guideData, masterPassword);
 
-      // Store in localStorage as a grief assistant guide
+      // Store in localStorage as a digital access guide
       const existingRaw = localStorage.getItem("aeterna_grief_guide");
       const entry = {
         encryptedGuide: JSON.stringify(encrypted),
@@ -266,12 +265,12 @@ export function GriefAssistant({ masterPassword, mode }: GriefAssistantProps) {
         {/* Header */}
         <div className="flex items-center gap-3 mb-2">
           <div className="w-10 h-10 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-gold" />
+            <BookOpen className="w-5 h-5 text-gold" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-slate-100">AI Grief Assistant</h2>
+            <h2 className="text-lg font-semibold text-slate-100">Digital Access Guide</h2>
             <p className="text-xs text-slate-400">
-              Let's build a comprehensive access guide for your heirs
+              Build a comprehensive access guide for your heirs. Select the services you use and we'll generate step-by-step recovery instructions.
             </p>
           </div>
         </div>
@@ -306,8 +305,8 @@ export function GriefAssistant({ masterPassword, mode }: GriefAssistantProps) {
               {step.type === "multiselect"
                 ? "Select all that apply"
                 : step.type === "yesno-expand"
-                ? "If yes, I'll generate specific recovery guides"
-                : "This helps me tailor your guide"}
+                ? "If yes, specific recovery guides will be included"
+                : "This helps tailor your guide"}
             </p>
           </div>
         </div>

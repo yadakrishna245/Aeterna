@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { Watch, Heart, Bluetooth, Wifi, Activity, Zap } from "lucide-react";
+import { useState } from "react";
+import { Watch, Heart, Bluetooth, Wifi, Activity, Zap, Info } from "lucide-react";
 
 interface SmartWatchConnectProps {
   onHeartbeatDetected?: () => void;
@@ -11,14 +11,6 @@ interface DeviceInfo {
   id: string;
 }
 
-interface ConnectionState {
-  connected: boolean;
-  deviceName: string | null;
-  lastHeartbeat: string | null;
-  enabled: boolean;
-  escalationDays: number;
-}
-
 const SUPPORTED_DEVICES: DeviceInfo[] = [
   { name: "Apple Watch", icon: "⌚", id: "apple-watch" },
   { name: "Google Pixel Watch", icon: "⌚", id: "pixel-watch" },
@@ -26,102 +18,9 @@ const SUPPORTED_DEVICES: DeviceInfo[] = [
   { name: "Samsung Galaxy Watch", icon: "⌚", id: "galaxy-watch" },
 ];
 
-const STORAGE_KEY = "aeterna-smartwatch-connection";
-
-function getStoredState(): ConnectionState {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch {
-    // ignore parse errors
-  }
-  return {
-    connected: false,
-    deviceName: null,
-    lastHeartbeat: null,
-    enabled: false,
-    escalationDays: 3,
-  };
-}
-
-function getDaysSinceLastSignal(lastHeartbeat: string | null): number | null {
-  if (!lastHeartbeat) return null;
-  const last = new Date(lastHeartbeat).getTime();
-  const now = Date.now();
-  return Math.floor((now - last) / (1000 * 60 * 60 * 24));
-}
-
-export function SmartWatchConnect({ onHeartbeatDetected }: SmartWatchConnectProps) {
-  const [state, setState] = useState<ConnectionState>(getStoredState);
-  const [pairing, setPairing] = useState(false);
-  const [pairingStep, setPairingStep] = useState(0);
-  const [selectedDevice, setSelectedDevice] = useState<DeviceInfo | null>(null);
-
-  // Persist state to localStorage
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
-
-  // Simulate periodic heartbeat detection when connected & enabled
-  useEffect(() => {
-    if (!state.connected || !state.enabled) return;
-
-    const interval = setInterval(() => {
-      const now = new Date().toISOString();
-      setState((prev) => ({ ...prev, lastHeartbeat: now }));
-      onHeartbeatDetected?.();
-    }, 60000); // simulate heartbeat every 60s
-
-    return () => clearInterval(interval);
-  }, [state.connected, state.enabled, onHeartbeatDetected]);
-
-  const handleConnect = useCallback(
-    (device: DeviceInfo) => {
-      setSelectedDevice(device);
-      setPairing(true);
-      setPairingStep(1);
-
-      // Simulate pairing animation steps
-      setTimeout(() => setPairingStep(2), 1500);
-      setTimeout(() => setPairingStep(3), 3000);
-      setTimeout(() => {
-        const now = new Date().toISOString();
-        setState((prev) => ({
-          ...prev,
-          connected: true,
-          deviceName: device.name,
-          lastHeartbeat: now,
-          enabled: true,
-        }));
-        setPairing(false);
-        setPairingStep(0);
-        setSelectedDevice(null);
-        onHeartbeatDetected?.();
-      }, 4500);
-    },
-    [onHeartbeatDetected]
-  );
-
-  const handleDisconnect = () => {
-    setState((prev) => ({
-      ...prev,
-      connected: false,
-      deviceName: null,
-      lastHeartbeat: null,
-      enabled: false,
-    }));
-  };
-
-  const toggleEnabled = () => {
-    setState((prev) => ({ ...prev, enabled: !prev.enabled }));
-  };
-
-  const setEscalationDays = (days: number) => {
-    setState((prev) => ({ ...prev, escalationDays: days }));
-  };
-
-  const daysSinceSignal = getDaysSinceLastSignal(state.lastHeartbeat);
-  const connectionHealthy = state.connected && daysSinceSignal !== null && daysSinceSignal < state.escalationDays;
+export function SmartWatchConnect({ onHeartbeatDetected: _onHeartbeatDetected }: SmartWatchConnectProps) {
+  const [showInfo, setShowInfo] = useState(false);
+  const [escalationDays, setEscalationDays] = useState(3);
 
   return (
     <div className="space-y-6">
@@ -129,112 +28,85 @@ export function SmartWatchConnect({ onHeartbeatDetected }: SmartWatchConnectProp
       <div className="bg-navy-800 rounded-xl border border-navy-700 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                state.connected
-                  ? "bg-emerald-500/10 border border-emerald-500/30"
-                  : "bg-slate-700/50 border border-slate-600"
-              }`}
-            >
-              <Watch className={`w-6 h-6 ${state.connected ? "text-emerald-400" : "text-slate-500"}`} />
+            <div className="w-12 h-12 rounded-full flex items-center justify-center bg-slate-700/50 border border-slate-600">
+              <Watch className="w-6 h-6 text-slate-500" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-slate-100">Wearable Connection</h3>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span
-                  className={`w-2.5 h-2.5 rounded-full ${
-                    state.connected ? "bg-emerald-400 animate-pulse" : "bg-red-400"
-                  }`}
-                />
-                <span className={`text-sm ${state.connected ? "text-emerald-400" : "text-red-400"}`}>
-                  {state.connected ? `Connected to ${state.deviceName}` : "Not Connected"}
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-slate-100">Wearable Connection</h3>
+                <span className="text-[10px] bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20 font-semibold">
+                  BETA
                 </span>
+              </div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-slate-500" />
+                <span className="text-sm text-slate-400">Not Connected</span>
               </div>
             </div>
           </div>
-          {state.connected && (
-            <button
-              onClick={handleDisconnect}
-              className="text-xs text-red-400 hover:text-red-300 border border-red-500/30 px-3 py-1.5 rounded-lg hover:bg-red-500/10 transition-all"
-            >
-              Disconnect
-            </button>
-          )}
         </div>
 
-        {/* Status Indicators */}
-        {state.connected && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-            <div className="bg-navy-900/50 rounded-lg p-3 border border-navy-700">
-              <div className="flex items-center gap-2 mb-1">
-                <Heart className="w-4 h-4 text-gold" />
-                <span className="text-xs text-slate-400">Last Heartbeat</span>
-              </div>
-              <p className="text-sm font-medium text-slate-100">
-                {state.lastHeartbeat
-                  ? new Date(state.lastHeartbeat).toLocaleString()
-                  : "No data"}
-              </p>
+        {/* Status Indicators — show honest defaults */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+          <div className="bg-navy-900/50 rounded-lg p-3 border border-navy-700">
+            <div className="flex items-center gap-2 mb-1">
+              <Heart className="w-4 h-4 text-slate-500" />
+              <span className="text-xs text-slate-400">Last Heartbeat</span>
             </div>
-            <div className="bg-navy-900/50 rounded-lg p-3 border border-navy-700">
-              <div className="flex items-center gap-2 mb-1">
-                <Activity className="w-4 h-4 text-gold" />
-                <span className="text-xs text-slate-400">Days Since Signal</span>
-              </div>
-              <p className="text-sm font-medium text-slate-100">
-                {daysSinceSignal !== null ? `${daysSinceSignal} day${daysSinceSignal !== 1 ? "s" : ""}` : "—"}
-              </p>
+            <p className="text-sm font-medium text-slate-500">No data</p>
+          </div>
+          <div className="bg-navy-900/50 rounded-lg p-3 border border-navy-700">
+            <div className="flex items-center gap-2 mb-1">
+              <Activity className="w-4 h-4 text-slate-500" />
+              <span className="text-xs text-slate-400">Days Since Signal</span>
             </div>
-            <div className="bg-navy-900/50 rounded-lg p-3 border border-navy-700">
-              <div className="flex items-center gap-2 mb-1">
-                <Wifi className="w-4 h-4 text-gold" />
-                <span className="text-xs text-slate-400">Connection Health</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`w-2 h-2 rounded-full ${connectionHealthy ? "bg-emerald-400" : "bg-red-400"}`}
-                />
-                <p className={`text-sm font-medium ${connectionHealthy ? "text-emerald-400" : "text-red-400"}`}>
-                  {connectionHealthy ? "Healthy" : "Needs Attention"}
-                </p>
-              </div>
+            <p className="text-sm font-medium text-slate-500">N/A</p>
+          </div>
+          <div className="bg-navy-900/50 rounded-lg p-3 border border-navy-700">
+            <div className="flex items-center gap-2 mb-1">
+              <Wifi className="w-4 h-4 text-slate-500" />
+              <span className="text-xs text-slate-400">Connection Health</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-slate-500" />
+              <p className="text-sm font-medium text-slate-500">Offline</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Connect Device Button */}
+      <div className="bg-navy-800 rounded-xl border border-navy-700 p-6 text-center">
+        <button
+          onClick={() => setShowInfo(true)}
+          className="btn-gold flex items-center gap-2 mx-auto text-sm"
+        >
+          <Bluetooth className="w-4 h-4" />
+          Connect Device
+        </button>
+        <p className="text-xs text-slate-500 mt-3 max-w-md mx-auto">
+          This feature requires a compatible smartwatch and browser with Web Bluetooth support (Chrome/Edge on Android). Coming soon for iOS.
+        </p>
+
+        {showInfo && (
+          <div className="mt-4 bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex items-start gap-3 text-left animate-fade-in">
+            <Info className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm text-blue-300 font-medium">Beta Feature</p>
+              <p className="text-xs text-slate-400 mt-1">
+                Smartwatch integration requires a compatible device and the Aeterna mobile app (coming soon).
+                This feature is in beta.
+              </p>
+              <button
+                onClick={() => setShowInfo(false)}
+                className="text-xs text-slate-500 hover:text-slate-300 mt-2 transition-colors"
+              >
+                Dismiss
+              </button>
             </div>
           </div>
         )}
       </div>
-
-      {/* Pairing Animation Overlay */}
-      {pairing && (
-        <div className="bg-navy-800 rounded-xl border border-gold/30 p-8 text-center">
-          <div className="relative w-20 h-20 mx-auto mb-4">
-            <div className="absolute inset-0 rounded-full border-2 border-gold/30 animate-ping" />
-            <div className="absolute inset-2 rounded-full border-2 border-gold/50 animate-pulse" />
-            <div className="absolute inset-4 rounded-full bg-gold/10 border border-gold flex items-center justify-center">
-              <Bluetooth className="w-6 h-6 text-gold" />
-            </div>
-          </div>
-          <p className="text-slate-100 font-medium mb-2">
-            {pairingStep === 1 && "Searching for device..."}
-            {pairingStep === 2 && `Found ${selectedDevice?.name}! Pairing...`}
-            {pairingStep === 3 && "Establishing secure connection..."}
-          </p>
-          <p className="text-xs text-slate-500">
-            {pairingStep === 1 && "Scanning for nearby Bluetooth devices"}
-            {pairingStep === 2 && "Exchanging encryption keys"}
-            {pairingStep === 3 && "Setting up heartbeat monitoring channel"}
-          </p>
-          <div className="mt-4 flex justify-center gap-1.5">
-            {[1, 2, 3].map((step) => (
-              <div
-                key={step}
-                className={`w-2.5 h-2.5 rounded-full transition-all ${
-                  pairingStep >= step ? "bg-gold" : "bg-navy-600"
-                }`}
-              />
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* How It Works */}
       <div className="bg-navy-800 rounded-xl border border-navy-700 p-6">
@@ -246,48 +118,33 @@ export function SmartWatchConnect({ onHeartbeatDetected }: SmartWatchConnectProp
           Your smartwatch heartbeat data acts as automatic proof of life. No button needed.
         </p>
         <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-          When enabled, Aeterna monitors heartbeat data from your wearable device via the Web Bluetooth API
+          When available, Aeterna will monitor heartbeat data from your wearable device via the Web Bluetooth API
           (Chrome/Edge) or Health Connect API (Android). If no heartbeat signal is received within your
           configured threshold, the escalation protocol begins — just like the manual Dead Man's Switch,
           but fully automatic.
         </p>
       </div>
 
-      {/* Supported Devices & Connect */}
+      {/* Supported Devices */}
       <div className="bg-navy-800 rounded-xl border border-navy-700 p-6">
         <div className="flex items-center gap-2 mb-4">
           <Bluetooth className="w-5 h-5 text-gold" />
           <h3 className="text-md font-semibold text-slate-100">Supported Devices</h3>
+          <span className="text-[10px] bg-slate-700/50 text-slate-400 px-2 py-0.5 rounded-full border border-slate-600/30">
+            Coming Soon
+          </span>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {SUPPORTED_DEVICES.map((device) => (
-            <button
+            <div
               key={device.id}
-              onClick={() => !state.connected && !pairing && handleConnect(device)}
-              disabled={state.connected || pairing}
-              className={`flex flex-col items-center gap-2 p-4 rounded-lg border transition-all ${
-                state.connected && state.deviceName === device.name
-                  ? "bg-gold/10 border-gold/40 text-gold"
-                  : state.connected || pairing
-                  ? "bg-navy-900/50 border-navy-700 text-slate-600 cursor-not-allowed"
-                  : "bg-navy-900/50 border-navy-700 text-slate-300 hover:border-gold/40 hover:bg-gold/5 cursor-pointer"
-              }`}
+              className="flex flex-col items-center gap-2 p-4 rounded-lg border bg-navy-900/50 border-navy-700 text-slate-500"
             >
-              <span className="text-2xl">{device.icon}</span>
+              <span className="text-2xl opacity-50">{device.icon}</span>
               <span className="text-xs font-medium text-center">{device.name}</span>
-              {state.connected && state.deviceName === device.name && (
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">
-                  Connected
-                </span>
-              )}
-            </button>
+            </div>
           ))}
         </div>
-        {!state.connected && !pairing && (
-          <p className="text-xs text-slate-500 mt-3 text-center">
-            Click a device to begin simulated pairing. Real Bluetooth pairing requires a native companion app.
-          </p>
-        )}
       </div>
 
       {/* Configuration */}
@@ -297,7 +154,7 @@ export function SmartWatchConnect({ onHeartbeatDetected }: SmartWatchConnectProp
           <h3 className="text-md font-semibold text-slate-100">Passive Check-In Settings</h3>
         </div>
 
-        {/* Enable Toggle */}
+        {/* Enable Toggle — disabled since no device connected */}
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-slate-200 font-medium">Enable Passive Check-In</p>
@@ -306,20 +163,13 @@ export function SmartWatchConnect({ onHeartbeatDetected }: SmartWatchConnectProp
             </p>
           </div>
           <button
-            onClick={toggleEnabled}
-            disabled={!state.connected}
-            className={`relative w-12 h-6 rounded-full transition-all ${
-              state.enabled ? "bg-gold" : "bg-navy-600"
-            } ${!state.connected ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+            disabled
+            className="relative w-12 h-6 rounded-full transition-all bg-navy-600 opacity-50 cursor-not-allowed"
             aria-label="Toggle passive check-in"
             role="switch"
-            aria-checked={state.enabled}
+            aria-checked={false}
           >
-            <span
-              className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
-                state.enabled ? "translate-x-6" : "translate-x-0"
-              }`}
-            />
+            <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform translate-x-0" />
           </button>
         </div>
 
@@ -327,7 +177,7 @@ export function SmartWatchConnect({ onHeartbeatDetected }: SmartWatchConnectProp
         <div>
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-slate-200 font-medium">Escalation Threshold</p>
-            <span className="text-sm font-semibold text-gold">{state.escalationDays} day{state.escalationDays !== 1 ? "s" : ""}</span>
+            <span className="text-sm font-semibold text-gold">{escalationDays} day{escalationDays !== 1 ? "s" : ""}</span>
           </div>
           <p className="text-xs text-slate-500 mb-3">
             Trigger escalation if no heartbeat data received for this many days
@@ -336,10 +186,10 @@ export function SmartWatchConnect({ onHeartbeatDetected }: SmartWatchConnectProp
             type="range"
             min={1}
             max={7}
-            value={state.escalationDays}
+            value={escalationDays}
             onChange={(e) => setEscalationDays(Number(e.target.value))}
             className="w-full h-2 rounded-full appearance-none cursor-pointer bg-navy-600 accent-gold"
-            disabled={!state.connected}
+            disabled
           />
           <div className="flex justify-between text-[10px] text-slate-600 mt-1">
             <span>1 day</span>
@@ -352,11 +202,10 @@ export function SmartWatchConnect({ onHeartbeatDetected }: SmartWatchConnectProp
       {/* Connection Method Info */}
       <div className="bg-navy-800/50 rounded-xl border border-navy-700/50 p-5">
         <p className="text-xs text-slate-500 leading-relaxed">
-          <span className="text-slate-400 font-medium">Connection Method:</span> This feature uses the
+          <span className="text-slate-400 font-medium">Connection Method:</span> This feature will use the
           Web Bluetooth API (supported in Chrome, Edge, and Opera) for direct device communication, or
           the Health Connect API on Android for background health data access. Apple HealthKit integration
-          requires a native iOS companion app. The current UI demonstrates the full workflow — actual
-          device communication is stubbed for the web demo.
+          requires a native iOS companion app. Device pairing is not yet available — this is a planned feature.
         </p>
       </div>
     </div>
