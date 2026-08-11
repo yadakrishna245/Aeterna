@@ -50,20 +50,25 @@ export const handler: Handler = async () => {
   }
 
   try {
-    // Scan for all ACTIVE and GRACE_PERIOD vaults
-    const scanResult = await dynamodb.send(
-      new ScanCommand({
-        TableName: TABLE_NAME,
-        FilterExpression: "#status = :active OR #status = :grace",
-        ExpressionAttributeNames: { "#status": "status" },
-        ExpressionAttributeValues: {
-          ":active": { S: "ACTIVE" },
-          ":grace": { S: "GRACE_PERIOD" },
-        },
-      })
-    );
-
-    const items = scanResult.Items || [];
+    // Paginated scan for all ACTIVE and GRACE_PERIOD vaults
+    let items: Record<string, any>[] = [];
+    let lastKey: Record<string, any> | undefined;
+    do {
+      const scanResult = await dynamodb.send(
+        new ScanCommand({
+          TableName: TABLE_NAME,
+          FilterExpression: "#status = :active OR #status = :grace",
+          ExpressionAttributeNames: { "#status": "status" },
+          ExpressionAttributeValues: {
+            ":active": { S: "ACTIVE" },
+            ":grace": { S: "GRACE_PERIOD" },
+          },
+          ExclusiveStartKey: lastKey,
+        })
+      );
+      items.push(...(scanResult.Items || []));
+      lastKey = scanResult.LastEvaluatedKey;
+    } while (lastKey);
     console.log(
       `📊 Found ${items.length} vault(s) to check (ACTIVE + GRACE_PERIOD).`
     );
@@ -154,7 +159,7 @@ async function processScheduledVault(vault: VaultRecord): Promise<void> {
     console.log(
       `  🎯 SCHEDULED TRIGGER: Vault ${vault.id} — scheduled date ${vault.scheduledTriggerDate} has arrived.`
     );
-    await updateVaultStatus(vault.id, "TRIGGERED");
+    await updateVaultStatus(vault.id, "TRIGGERED", "ACTIVE");
     await logSendNotification(
       vault.id,
       vault.owner,
@@ -202,7 +207,7 @@ async function processHeartbeatVault(
       `  🚨 TRIGGERING vault ${vault.id} — exceeded grace period by ` +
         `${(daysSinceHeartbeat - totalDeadline).toFixed(1)} days.`
     );
-    await updateVaultStatus(vault.id, "TRIGGERED");
+    await updateVaultStatus(vault.id, "TRIGGERED", "ACTIVE");
     await logSendNotification(
       vault.id,
       vault.owner,
@@ -252,7 +257,7 @@ async function processGracePeriodVault(
     console.log(
       `  🚨 TRIGGERING vault ${vault.id} — grace period expired.`
     );
-    await updateVaultStatus(vault.id, "TRIGGERED");
+    await updateVaultStatus(vault.id, "TRIGGERED", "GRACE_PERIOD");
     await logSendNotification(
       vault.id,
       vault.owner,
@@ -333,23 +338,29 @@ function shouldSendReminderNow(
 // ═══════════════════════════════════════════════════════════════════════════════
 async function updateVaultStatus(
   vaultId: string,
-  status: string
+  status: string,
+  expectedCurrentStatus?: string
 ): Promise<void> {
-  await dynamodb.send(
-    new UpdateItemCommand({
-      TableName: TABLE_NAME,
-      Key: { id: { S: vaultId } },
-      UpdateExpression: "SET #status = :status, #updatedAt = :now",
-      ExpressionAttributeNames: {
-        "#status": "status",
-        "#updatedAt": "updatedAt",
-      },
-      ExpressionAttributeValues: {
-        ":status": { S: status },
-        ":now": { S: new Date().toISOString() },
-      },
-    })
-  );
+  const params: any = {
+    TableName: TABLE_NAME,
+    Key: { id: { S: vaultId } },
+    UpdateExpression: "SET #s = :status, #updatedAt = :now",
+    ExpressionAttributeNames: {
+      "#s": "status",
+      "#updatedAt": "updatedAt",
+    },
+    ExpressionAttributeValues: {
+      ":status": { S: status },
+      ":now": { S: new Date().toISOString() },
+    },
+  };
+
+  if (expectedCurrentStatus) {
+    params.ConditionExpression = "attribute_exists(id) AND #s = :expected";
+    params.ExpressionAttributeValues[":expected"] = { S: expectedCurrentStatus };
+  }
+
+  await dynamodb.send(new UpdateItemCommand(params));
 }
 
 async function updateVaultToGracePeriod(
@@ -361,13 +372,15 @@ async function updateVaultToGracePeriod(
       TableName: TABLE_NAME,
       Key: { id: { S: vaultId } },
       UpdateExpression:
-        "SET #status = :grace, #remindersSent = :reminders, #updatedAt = :now",
+        "SET #s = :grace, #remindersSent = :reminders, #updatedAt = :now",
+      ConditionExpression: "attribute_exists(id) AND #s = :active",
       ExpressionAttributeNames: {
-        "#status": "status",
+        "#s": "status",
         "#remindersSent": "remindersSent",
         "#updatedAt": "updatedAt",
       },
       ExpressionAttributeValues: {
+        ":active": { S: "ACTIVE" },
         ":grace": { S: "GRACE_PERIOD" },
         ":reminders": { N: String(newReminderCount) },
         ":now": { S: new Date().toISOString() },

@@ -71,6 +71,11 @@ interface DecryptedVaultMeta {
   heirEmail: string;
 }
 
+function clearAeternaStorage() {
+  const keys = Object.keys(localStorage).filter(k => k.startsWith('aeterna_'));
+  keys.forEach(k => localStorage.removeItem(k));
+}
+
 export function Dashboard({ user, masterPassword, signOut, onLock, isPanicMode }: DashboardProps) {
   const [vaults, setVaults] = useState<VaultItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -374,7 +379,7 @@ export function Dashboard({ user, masterPassword, signOut, onLock, isPanicMode }
               Lock
             </button>
             <button
-              onClick={signOut}
+              onClick={() => { clearAeternaStorage(); signOut(); }}
               className="text-slate-400 hover:text-red-400 transition-colors p-2"
               title="Sign out"
             >

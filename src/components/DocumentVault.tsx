@@ -4,7 +4,7 @@ import {
   Download, SortAsc, Building2, CreditCard, Heart, Scale, GraduationCap,
   Monitor, Package, Landmark, Home, Fuel, Cloud
 } from 'lucide-react';
-import { encryptBinary, decryptBinary } from '../utils/crypto';
+import { encryptBinary, decryptBinary, encryptData, decryptData } from '../utils/crypto';
 import { getCurrentPlan } from '../utils/subscription';
 import { uploadData, downloadData, remove } from 'aws-amplify/storage';
 import { generateClient } from 'aws-amplify/data';
@@ -82,6 +82,22 @@ function getFileTypeIcon(mimeType: string): string {
 }
 
 
+async function encryptField(value: string, masterPassword: string): Promise<string> {
+  if (!value) return '';
+  const enc = await encryptData(value, masterPassword);
+  return JSON.stringify({ c: enc.ciphertext, i: enc.iv, s: enc.salt });
+}
+
+async function decryptField(stored: string, masterPassword: string): Promise<string> {
+  if (!stored) return '';
+  try {
+    const { c, i, s } = JSON.parse(stored);
+    return await decryptData({ ciphertext: c, iv: i, salt: s }, masterPassword);
+  } catch {
+    return stored; // fallback for unencrypted legacy data
+  }
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function DocumentVault({ masterPassword }: { masterPassword: string }) {
@@ -115,12 +131,12 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
       try {
         setLoading(true);
         const { data: docs } = await client.models.Document.list();
-        const mapped: DocumentMeta[] = (docs || []).map((d) => ({
+        const mapped: DocumentMeta[] = await Promise.all((docs || []).map(async (d) => ({
           id: d.id,
-          name: d.name,
-          originalName: d.originalName,
+          name: await decryptField(d.name, masterPassword),
+          originalName: await decryptField(d.originalName, masterPassword),
           category: d.category,
-          notes: d.notes || '',
+          notes: await decryptField(d.notes || '', masterPassword),
           mimeType: d.mimeType,
           size: d.size,
           s3Key: d.s3Key,
@@ -128,7 +144,7 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
           salt: d.salt,
           createdAt: d.createdAt || undefined,
           updatedAt: d.updatedAt || undefined,
-        }));
+        })));
         setDocuments(mapped);
       } catch (err) {
         console.error('Failed to load documents:', err);
@@ -192,10 +208,14 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
           },
         }).result;
 
-        // 3. Save metadata to DynamoDB
+        // 3. Encrypt metadata fields
+        const encName = await encryptField(file.name.replace(/\.[^/.]+$/, ''), masterPassword);
+        const encOrigName = await encryptField(file.name, masterPassword);
+
+        // 4. Save metadata to DynamoDB
         const { data: created } = await client.models.Document.create({
-          name: file.name.replace(/\.[^/.]+$/, ''),
-          originalName: file.name,
+          name: encName,
+          originalName: encOrigName,
           category: activeCategory,
           notes: '',
           mimeType: file.type || 'application/octet-stream',
@@ -208,10 +228,10 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
         if (created) {
           setDocuments(prev => [...prev, {
             id: created.id,
-            name: created.name,
-            originalName: created.originalName,
+            name: file.name.replace(/\.[^/.]+$/, ''),
+            originalName: file.name,
             category: created.category,
-            notes: created.notes || '',
+            notes: '',
             mimeType: created.mimeType,
             size: created.size,
             s3Key: created.s3Key,
@@ -304,10 +324,12 @@ export function DocumentVault({ masterPassword }: { masterPassword: string }) {
     if (!editingId) return;
     try {
       const newName = editName.trim() || documents.find(d => d.id === editingId)?.name || '';
+      const encNewName = await encryptField(newName, masterPassword);
+      const encNotes = await encryptField(editNotes, masterPassword);
       await client.models.Document.update({
         id: editingId,
-        name: newName,
-        notes: editNotes,
+        name: encNewName,
+        notes: encNotes,
       });
       setDocuments(prev =>
         prev.map(d =>

@@ -2,11 +2,9 @@ import { useState, useEffect } from "react";
 import { AlertTriangle, Shield, EyeOff, Lock, Eye, Mail, Trash2, CheckCircle } from "lucide-react";
 import {
   isPanicModeEnabled,
-  setPanicPassword,
+  setupPanicMode,
   getPanicBehavior,
-  setPanicBehavior,
   getPanicAlertEmail,
-  setPanicAlertEmail,
   clearPanicMode,
   type PanicBehavior,
 } from "../utils/panicMode";
@@ -49,11 +47,7 @@ export function PanicModeSetup() {
 
     setSaving(true);
     try {
-      await setPanicPassword(duressPassword);
-      setPanicBehavior(behavior);
-      if (behavior === "alert") {
-        setPanicAlertEmail(alertEmail.trim());
-      }
+      await setupPanicMode(duressPassword, behavior, behavior === "alert" ? alertEmail.trim() : "");
       setEnabled(true);
       setDuressPassword("");
       setConfirmPassword("");
@@ -295,7 +289,7 @@ export function PanicModeSetup() {
           <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
           <div className="text-xs text-slate-400 space-y-1">
             <p className="text-red-300 font-medium">Security Notice</p>
-            <p>Your duress password is stored as a SHA-256 hash only. The plaintext is never saved.</p>
+            <p>Your duress password is verified using PBKDF2 (600K iterations) with a random salt. Behavior settings are AES-256-GCM encrypted.</p>
             <p>Make sure your duress password is significantly different from your real master password to avoid accidental activation.</p>
           </div>
         </div>
