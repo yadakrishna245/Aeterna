@@ -125,6 +125,7 @@ function MasterPasswordGate({ signOut, user, onShowTerms, onShowPrivacy }: Maste
   const [verifying, setVerifying] = useState(false);
   const [isFirstTime, setIsFirstTime] = useState(false);
   const [confirmInput, setConfirmInput] = useState("");
+  const [initializing, setInitializing] = useState(true);
   const termsRecordedRef = useRef(false);
   const verificationTokenRef = useRef<EncryptedData | null>(null);
 
@@ -159,6 +160,8 @@ function MasterPasswordGate({ signOut, user, onShowTerms, onShowPrivacy }: Maste
         } else {
           setIsFirstTime(true);
         }
+      } finally {
+        setInitializing(false);
       }
     }
     loadVerification();
@@ -206,6 +209,8 @@ function MasterPasswordGate({ signOut, user, onShowTerms, onShowPrivacy }: Maste
 
   const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (initializing) return; // Block submission until verification token is loaded
+
     if (passwordInput.length < 8) {
       setError("Master password must be at least 8 characters.");
       return;
@@ -249,7 +254,17 @@ function MasterPasswordGate({ signOut, user, onShowTerms, onShowPrivacy }: Maste
         return;
       }
 
-      // RETURNING USER: Verify the master password
+      // RETURNING USER: Check panic password FIRST (before master verification)
+      const isPanic = await checkIsPanicPassword(passwordInput);
+      if (isPanic) {
+        setIsPanicMode(true);
+        setMasterPassword(passwordInput);
+        setPasswordInput("");
+        setVerifying(false);
+        return; // Skip master password verification — show decoy view
+      }
+
+      // Verify the master password against stored token
       if (verificationTokenRef.current) {
         const isValid = await verifyMasterPassword(passwordInput, verificationTokenRef.current);
         if (!isValid) {
@@ -258,12 +273,6 @@ function MasterPasswordGate({ signOut, user, onShowTerms, onShowPrivacy }: Maste
           setPasswordInput("");
           return;
         }
-      }
-
-      // Check if this is the panic/duress password
-      const isPanic = await checkIsPanicPassword(passwordInput);
-      if (isPanic) {
-        setIsPanicMode(true);
       }
 
       setMasterPassword(passwordInput);
@@ -374,8 +383,13 @@ function MasterPasswordGate({ signOut, user, onShowTerms, onShowPrivacy }: Maste
             )}
           </div>
 
-          <button type="submit" className="btn-gold w-full" disabled={verifying}>
-            {verifying ? (
+          <button type="submit" className="btn-gold w-full" disabled={verifying || initializing}>
+            {initializing ? (
+              <>
+                <Loader2 className="w-4 h-4 inline mr-2 animate-spin" />
+                Loading...
+              </>
+            ) : verifying ? (
               <>
                 <Loader2 className="w-4 h-4 inline mr-2 animate-spin" />
                 Verifying...
