@@ -307,4 +307,64 @@ A comprehensive, categorized document storage system. Every document a person ne
 
 ---
 
+## 📝 Session Log — August 11, 2026 (Morning)
+
+### Security Audit & Critical Bug Fixes
+
+#### 🔴 CRITICAL Bug Found & Fixed: Master Password Bypass
+**Problem:** ANY password ≥ 8 characters was accepted as the master password. No verification existed.
+- User enters `Krishna@8688` first time → works
+- Logs out, enters `Krishna@86` → ALSO works (WRONG!)
+
+**Fix:** Added AES-GCM verification token system:
+1. First login: user confirms password → encrypts a "magic string" → stores token in DynamoDB
+2. Subsequent logins: decrypts token with entered password → GCM tag validates correctness
+3. Wrong password → AES-GCM authentication fails → "Wrong master password" error → DENIED
+4. 600,000 PBKDF2 iterations make brute force impractical
+
+#### 🔴 Race Condition Fix
+**Problem:** Form was submittable before verification token loaded from DynamoDB. Fast users could bypass.
+**Fix:** Added `initializing` state. Submit button disabled + shows "Loading..." until DynamoDB responds.
+
+#### 🔴 Panic Mode Fix
+**Problem:** Panic password check happened AFTER master password verification. Since panic ≠ master, panic always showed "Wrong password" instead of decoy view.
+**Fix:** Moved panic check BEFORE verification. If panic matches → show decoy immediately, skip verification.
+
+#### 🟡 Other Security Fixes Applied
+| Fix | File | What Changed |
+|-----|------|-------------|
+| Encrypt document metadata | `DocumentVault.tsx` | name, originalName, notes encrypted before DynamoDB save |
+| Clear localStorage on signout | `Dashboard.tsx` | All `aeterna_*` keys wiped on sign-out |
+| Encrypt panic mode config | `panicMode.ts` | Rewritten with PBKDF2 + encrypted config blob (no plaintext localStorage) |
+| Paginate Lambda scan | `heartbeat-monitor/handler.ts` | DynamoDB scan now paginates + ConditionExpression prevents double-trigger |
+
+#### Known Issues (Deferred — No Payment System Yet)
+| Issue | Why Deferred |
+|-------|-------------|
+| Subscription plan in localStorage (bypassable) | No real payments yet — enforce server-side when Razorpay integrated |
+| Vault count limit (3) never enforced | Same — needs server-side check post-Razorpay |
+| File size limit client-only | Add Lambda validation when usage grows |
+
+### Deployment History
+
+| Commit | Message |
+|--------|---------|
+| `74c8fd0` | refactor: reorganize repo structure, fix docs, add OG image |
+| `7e7a71f` | feat: Document Vault uses S3 for file storage + DynamoDB metadata |
+| `d7ffbb6` | feat: migration script includes documents S3 bucket |
+| `ecf4a17` | feat: deploy backend with Document model + S3 storage |
+| `0d287b3` | security: fix master password bypass - verify with encrypted token |
+| `d76fc0b` | security: fix race condition + panic mode order |
+| `97db8ef` | security: encrypt doc metadata, clear localStorage, fix panic, paginate Lambda |
+
+### AWS Resources Created This Session
+| Resource | Purpose |
+|----------|---------|
+| S3: `aeterna-documents-vault` | Encrypted document file storage (per-user isolation) |
+| DynamoDB: Document model | Document metadata (encrypted name, category, s3Key, iv, salt) |
+| IAM Policy: `AeternaDocumentsS3Access` | Per-user S3 access via identity pool |
+| Amplify Storage config | `amplify/storage/resource.ts` |
+
+---
+
 **Built with** ❤️ **by Krishna** | 30+ Features | AWS Serverless | First-in-Market Digital Estate Planner
