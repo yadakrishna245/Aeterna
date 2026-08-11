@@ -220,3 +220,38 @@ export async function decryptBinary(
     );
   }
 }
+
+
+/**
+ * Master Password Verification
+ *
+ * Encrypts a known magic string. On verification, attempts to decrypt it.
+ * If AES-GCM authentication fails → wrong password (guaranteed by GCM tag).
+ */
+const VERIFICATION_MAGIC = "AETERNA_MASTER_PASSWORD_VERIFIED_2026";
+
+/**
+ * Create a verification token for the master password.
+ * Store this token so we can verify the password on future logins.
+ */
+export async function createPasswordVerification(
+  masterPassword: string
+): Promise<EncryptedData> {
+  return encryptData(VERIFICATION_MAGIC, masterPassword);
+}
+
+/**
+ * Verify a master password against a stored verification token.
+ * Returns true if the password is correct, false otherwise.
+ */
+export async function verifyMasterPassword(
+  masterPassword: string,
+  verificationToken: EncryptedData
+): Promise<boolean> {
+  try {
+    const decrypted = await decryptData(verificationToken, masterPassword);
+    return decrypted === VERIFICATION_MAGIC;
+  } catch {
+    return false;
+  }
+}
